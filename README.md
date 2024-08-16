@@ -1,38 +1,38 @@
-[![Deploy to GitHub Pages](https://github.com/mojoaxel/neo4j-graph-editor/actions/workflows/deploy.yml/badge.svg)](https://github.com/mojoaxel/neo4j-graph-editor/actions/workflows/deploy.yml)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://opensource.org/licenses/AGPL-3.0)
+# create-svelte
 
-# neo4j-graph-editor
+Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
 
-Edit [neo4j](https://neo4j.com/) databases directly using the [vis-network](https://github.com/visjs/vis-network) graph library.
+## Creating a project
 
-[🚀 DEMO](https://aimig-org.github.io/neo4j-graph-editor/)
+If you're seeing this, you've probably already done this step. Congrats!
 
-## State of development
+```bash
+# create a new project in the current directory
+npm create svelte@latest
 
-_This software is currently in pre-release alpha state. It is not read for pruductive use, yet._
-
-🔧 See our [Kanban board](https://github.com/aimig-org/neo4j-graph-editor/projects/1) for details.
-
-## Development
-
-### 💻 Run locally:
-
-```sh
-git clone https://github.com/aimig-org/neo4j-graph-editor.git
-cd neo4j-graph-editor
-npm install
-npm run dev
+# create a new project in my-app
+npm create svelte@latest my-app
 ```
 
-### 🖥️ Build and deploy:
+## Developing
 
-```sh
+Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+
+```bash
+npm run dev
+
+# or start the server and open the app in a new browser tab
+npm run dev -- --open
+```
+
+## Building
+
+To create a production version of your app:
+
+```bash
 npm run build
 ```
-Deploy the created `public` folder to a simple static webserver.
 
-## License
+You can preview the production build with `npm run preview`.
 
-Copyright 2022 by [fullstax GmbH & Co. KG](https://fullstax.de/).
-
-Licensed under a [AGPL-3.0](https://opensource.org/licenses/AGPL-3.0) license.
+> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
