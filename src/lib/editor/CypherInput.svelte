@@ -1,14 +1,17 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
-
-
-	const dispatch = createEventDispatcher();
+	/** @type {{ execute: function }} */
+	let { execute } = $props();
 
 	let cypher = $state('');
 </script>
 
 <section id="cypher">
-	<form on:submit|preventDefault={() => dispatch('execute')}>
+	<form
+		onsubmit={(e) => {
+			e.preventDefault();
+			execute();
+		}}
+	>
 		<span>neo4j$</span>
 		<input type="text" bind:value={cypher} />
 		<button type="submit" id="sendCypherBtn" title="Execute cypher">▸</button>

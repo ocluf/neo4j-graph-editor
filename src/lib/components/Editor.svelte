@@ -2,11 +2,11 @@
 	import { onDestroy } from 'svelte';
 	import debounce from 'lodash.debounce';
 
-	import CypherInput from '../../old/src/editor/CypherInput.svelte';
-	import Graph from '../../old/src/editor/Graph.svelte';
-	import Properties from '../../old/src/editor/Properties.svelte';
+	import CypherInput from '$lib/editor/CypherInput.svelte';
+	import Graph from '$lib/editor/Graph.svelte';
+	import Properties from '$lib/editor/Properties.svelte';
 
-	import { appSettings, serverSettings } from './settings/settings';
+	import { appSettings, serverSettings } from '$lib/settings/settingsStore.svelte';
 	import networkStore from '../../src/lib/store';
 
 	let selectedNode;

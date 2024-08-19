@@ -39,7 +39,7 @@ class Neo4jNetworkStore {
 		/* Creates a svelte writable store for the node/edge data. */
 		this.dataStore = writable({
 			nodes: this.#nodes,
-			edges: this.#edges,
+			edges: this.#edges
 		});
 
 		/* Creates a simple svelte store for the loading-state */
@@ -96,7 +96,7 @@ class Neo4jNetworkStore {
 	 * if the settings are valid.
 	 *
 	 * @param {*} serverSettings
-	 * @returns {Boolean} true if the settings are valid, false otherwise.
+	 * @returns {Promise<Boolean>} true if the settings are valid, false otherwise.
 	 */
 	async setServerSettings(serverSettings = this.#serverSettings) {
 		const isValid = await this.validateServerSettings(serverSettings);
@@ -139,7 +139,7 @@ class Neo4jNetworkStore {
 	 * If a node with the given id already exists, it will be updated.
 	 * The node is added to the database, but only the internal store.
 	 *
-	 * @param {Number} id
+	 * @param {Number | undefined | string} id
 	 * @param {String} label
 	 * @param {String[]} labels
 	 * @param {Object | null} properties
@@ -151,7 +151,7 @@ class Neo4jNetworkStore {
 					`id:${id}`,
 					`label:${label}`,
 					`labels:${labels.join(',')}`,
-					`properties:${JSON.stringify(properties)}`,
+					`properties:${JSON.stringify(properties)}`
 				].join(', ')
 		);
 
@@ -173,7 +173,7 @@ class Neo4jNetworkStore {
 			level: this.#getLevelByLabels(labels),
 			title: container,
 			labels,
-			properties,
+			properties
 		};
 
 		if (node) {
@@ -182,8 +182,8 @@ class Neo4jNetworkStore {
 				...node,
 				...newNode,
 				...{
-					id: node.id,
-				},
+					id: node.id
+				}
 			});
 		} else {
 			// create a new node
@@ -219,7 +219,7 @@ class Neo4jNetworkStore {
 			label,
 			from,
 			to,
-			type,
+			type
 		};
 
 		if (edge) {
@@ -228,8 +228,8 @@ class Neo4jNetworkStore {
 				...edge,
 				...newEdge,
 				...{
-					id: edge.id,
-				},
+					id: edge.id
+				}
 			});
 		} else {
 			// create a new edge
@@ -257,7 +257,7 @@ class Neo4jNetworkStore {
 			console.log(`[Neo4jNetworkStore.loadNetwork] run:${cypher}`);
 			this.#neo4jSession
 				.run(cypher)
-				.then(result => {
+				.then((result) => {
 					/* We need to disable auto-updates TO the database here
 					 * because the data has just been loaded FROM the database. */
 					this.#disableDBAutoUpdates();
@@ -271,7 +271,7 @@ class Neo4jNetworkStore {
 					// this.#edges.setOptions(queueSettings);
 
 					// add all nodes and edges from teh server
-					result.records.forEach(record => {
+					result.records.forEach((record) => {
 						this.#parseNeo4jRecords(record);
 					});
 
@@ -281,7 +281,7 @@ class Neo4jNetworkStore {
 
 					this.#enableDBAutoUpdates();
 				})
-				.catch(err => {
+				.catch((err) => {
 					//TODO: better error handling!
 					this.loading.set(false);
 					alert(`Error executing cypher:\n${err}`);
@@ -291,7 +291,7 @@ class Neo4jNetworkStore {
 					 * This is used to stabilize (physics) the network */
 					this.dataStore.set({
 						nodes: this.#nodes,
-						edges: this.#edges,
+						edges: this.#edges
 					});
 
 					// close the current session
@@ -309,7 +309,7 @@ class Neo4jNetworkStore {
 
 	#parseNeo4jRecords(records) {
 		//console.time('⌚ [Neo4jNetworkStore.parseNeo4jRecords]');
-		records.map(async x => {
+		records.map(async (x) => {
 			if (x instanceof Neo4j.types.Node) {
 				const id = x.identity.toInt();
 				const labels = x.labels;
@@ -381,7 +381,7 @@ class Neo4jNetworkStore {
 	 * @returns {String}
 	 */
 	#getNodeLabel(id, label, labels, properties) {
-		return [label, labels.map(l => `<i>${l}</i>`)].join('\n');
+		return [label, labels.map((l) => `<i>${l}</i>`)].join('\n');
 	}
 
 	/**

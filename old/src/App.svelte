@@ -4,11 +4,13 @@ This is the main component that creates the basic structure of the application.
 <script>
 	import { onDestroy, onMount } from 'svelte';
 
-	import Header from './Header.svelte';
-	import Editor from './Editor.svelte';
-	import Footer from './Footer.svelte';
-	import networkStore from './store';
-	import { serverSettings } from './settings/settings';
+	import Header from '../../src/lib/Header.svelte';
+	import Editor from '../../src/lib/Editor.svelte';
+	import Footer from '../../src/lib/Footer.svelte';
+	import networkStore from '../../src/lib/store';
+	import { serverSettings } from '../../src/lib/settings/settings';
+
+
 
 	let settingsDialog;
 	let settingsUnsubscribe;
