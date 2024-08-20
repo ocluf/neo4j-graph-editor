@@ -1,18 +1,48 @@
 <script>
-	import Editor from '$lib/components/Editor.svelte';
-	import Header from '$lib/components/Header.svelte';
+	import { onDestroy, onMount } from 'svelte';
+
+	import Header from '$lib/Header.svelte';
+	import Editor from '$lib/Editor.svelte';
+	import Footer from '$lib/Footer.svelte';
+	import networkStore from '$lib/store';
+	import { serverSettings } from '$lib/settings/settings';
+
+	let settingsDialog;
+	let settingsUnsubscribe;
+
+	onMount(async () => {
+		/* Ater the App is loaded we need to:
+		 * subscribe to changes of the server-settings
+		 * and reconnect to the server.
+		 * If connection fails we display the settings-dialog. */
+		settingsUnsubscribe = serverSettings.subscribe(async (serverSettings) => {
+			const isValid = await networkStore.setServerSettings(serverSettings);
+			if (isValid) {
+				await networkStore.connect();
+			} else {
+				console.warn(`[App⚡serverSettings] invalid serverSettings`);
+
+				settingsDialog.show();
+			}
+		});
+	});
+
+	onDestroy(async () => {
+		// disconnecting if the app gets closed.
+		await networkStore.disconnect();
+		settingsUnsubscribe ?? settingsUnsubscribe();
+	});
 </script>
 
 <main>
 	<header>
-		<Header />
+		<Header bind:settingsDialog />
 	</header>
-
 	<article>
 		<Editor />
 	</article>
 	<footer>
-		<!-- <Footer /> -->
+		<Footer />
 	</footer>
 </main>
 

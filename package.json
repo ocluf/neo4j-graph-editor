@@ -33,7 +33,6 @@
 		"nanoid": "^5.0.7",
 		"lodash.debounce": "^4.0.8",
 		"neo4j-driver": "^4.4.5",
-		"runed": "^0.15.1",
 		"timsort": "^0.3.0",
 		"uuid": "^8.3.2",
 		"vis-data": "^7.1.4",

@@ -3,7 +3,7 @@ export function renderHoverInfo(id, label, labels, properties) {
 	lines.push(`<h3>${label}</h3>`);
 	lines.push(`[${labels.join(',')}]`);
 	lines.push('<dl style="">');
-	Object.keys(properties).forEach((key) => {
+	Object.keys(properties).forEach(key => {
 		lines.push(`<dt>${key}</dt><dd>${properties[key]}</dd>`);
 	});
 	lines.push('</dl>');

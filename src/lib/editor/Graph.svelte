@@ -3,26 +3,22 @@
 	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 
 	import networkStore from '../store';
-	import { editorState } from './editorState.svelte';
+	import { editorState } from './editorState';
 	import { getOptions } from './networkOption';
 	import NavigationButtons from './NavigationButtons.svelte';
 	import LayoutButtons from './LayoutButtons.svelte';
-	import LoadingIndicator from '$lib/components/LoadingIndicator.svelte';
+	import LoadingIndicator from '../components/LoadingIndicator.svelte';
 
-	let {
-		selectedNode = $bindable(),
-		selectedEdge = $bindable(),
-		focusChanged,
-		focusOnSelected,
-		loadConnectionsForSelectedNode
-	} = $props();
+	let { selectedNode = $bindable(), selectedEdge = $bindable(), focusNodeId } = $props();
 
 	let networkElement;
 	let networkGraph;
 	let networkOptions = {};
 	let unsubscribeNetworkStore;
 	let unsubscribeEditorState;
-	let focusNodeId;
+	let loading = networkStore.loading;
+
+	const dispatch = createEventDispatcher();
 
 	function listenToStoreEvents() {
 		// Listen to events of the nodes DataSet (e.g. "add", "remove", "update")
@@ -80,7 +76,9 @@
 			console.log(`[Graph⚡event] "doubleClick":`, params);
 			const nodeId = params.nodes[0];
 			if (nodeId >= 0 && nodeId !== focusNodeId) {
-				focusChanged(nodeId);
+				dispatch('focusChanged', {
+					nodeId
+				});
 			}
 		});
 
@@ -131,6 +129,14 @@
 		networkGraph.fit();
 	}
 
+	function focusOnSelected() {
+		dispatch('focusOnSelected');
+	}
+
+	function loadConnectionsForSelectedNode() {
+		dispatch('loadConnectionsForSelectedNode');
+	}
+
 	onMount(async () => {
 		// create a network
 		networkElement = document.getElementById('network');
@@ -178,17 +184,17 @@
 </svelte:head>
 
 <div id="graph">
-	<div id="network" disabled={networkStore.$loading} />
-	<div id="navigation" disabled={networkStore.$loading}>
-		<LayoutButtons {fitNetwork} />
+	<div id="network" disabled={$loading} />
+	<div id="navigation" disabled={$loading}>
+		<LayoutButtons on:fitNetwork={fitNetwork} />
 		<NavigationButtons
-			disabled={networkStore.$loading}
+			disabled={$loading}
 			bind:selectedNode
-			{focusOnSelected}
-			{loadConnectionsForSelectedNode}
+			on:focusOnSelected={focusOnSelected}
+			on:loadConnectionsForSelectedNode={loadConnectionsForSelectedNode}
 		/>
 	</div>
-	{#if networkStore.$loading}
+	{#if $loading}
 		<LoadingIndicator />
 	{/if}
 </div>

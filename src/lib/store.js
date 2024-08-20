@@ -87,7 +87,6 @@ class Neo4jNetworkStore {
 			await driver.close();
 			return true;
 		} catch (err) {
-			console.error(err);
 			return false;
 		}
 	}
@@ -97,7 +96,7 @@ class Neo4jNetworkStore {
 	 * if the settings are valid.
 	 *
 	 * @param {*} serverSettings
-	 * @returns {Promise<Boolean>} true if the settings are valid, false otherwise.
+	 * @returns {Boolean} true if the settings are valid, false otherwise.
 	 */
 	async setServerSettings(serverSettings = this.#serverSettings) {
 		const isValid = await this.validateServerSettings(serverSettings);
@@ -140,7 +139,7 @@ class Neo4jNetworkStore {
 	 * If a node with the given id already exists, it will be updated.
 	 * The node is added to the database, but only the internal store.
 	 *
-	 * @param {Number | undefined | string} id
+	 * @param {Number} id
 	 * @param {String} label
 	 * @param {String[]} labels
 	 * @param {Object | null} properties
@@ -252,7 +251,7 @@ class Neo4jNetworkStore {
 			this.clear();
 		}
 
-		await this.connect();
+		//this.connect();
 
 		try {
 			console.log(`[Neo4jNetworkStore.loadNetwork] run:${cypher}`);

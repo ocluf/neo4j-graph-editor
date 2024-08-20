@@ -1,3 +1,6 @@
+<script>
+</script>
+
 <div id="loading_indicator">
 	<div class="lds-dual-ring" />
 </div>

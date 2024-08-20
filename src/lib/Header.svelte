@@ -1,11 +1,14 @@
 <script>
-	import Settings from '$lib/settings/Settings.svelte';
+	import Settings from './settings/Settings.svelte';
+
+	let { settingsDialog = $bindable() } = $props();
 </script>
 
 <span id="header">
 	<h1>Neo4j Graph Editor</h1>
 	<nav>
-		<Settings />
+		<button id="settingsBtn" title="Show server settings" onclick={settingsDialog.show}>⚙</button>
+		<Settings bind:this={settingsDialog} />
 	</nav>
 </span>
 
@@ -29,5 +32,9 @@
 
 	nav {
 		display: flex;
+	}
+
+	#settingsBtn {
+		font-size: 1.75em;
 	}
 </style>

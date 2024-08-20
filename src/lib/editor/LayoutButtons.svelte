@@ -1,9 +1,13 @@
 <script>
-	import { editorState } from './editorState.svelte';
-	/**
-	 * @type {{fitNetwork: Function}}
-	 */
-	let { fitNetwork } = $props();
+	import { createEventDispatcher } from 'svelte';
+
+	import { editorState } from './editorState';
+
+	const dispatch = createEventDispatcher();
+
+	function onFitNetwork() {
+		dispatch('fitNetwork');
+	}
 </script>
 
 <nav>
@@ -21,9 +25,7 @@
 			</div>
 		</li>
 		<li>
-			<button id="fit-network" onclick={() => fitNetwork()} title="show the whole network"
-				>fit</button
-			>
+			<button id="fit-network" on:click={onFitNetwork} title="show the whole network">fit</button>
 		</li>
 	</ul>
 </nav>

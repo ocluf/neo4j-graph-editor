@@ -2,21 +2,20 @@
 	import { onDestroy } from 'svelte';
 	import debounce from 'lodash.debounce';
 
-	import CypherInput from '$lib/editor/CypherInput.svelte';
-	import Graph from '$lib/editor/Graph.svelte';
-	import Properties from '$lib/editor/Properties.svelte';
+	import CypherInput from './editor/CypherInput.svelte';
+	import Graph from './editor/Graph.svelte';
+	import Properties from './editor/Properties.svelte';
 
-	import { appSettings, serverSettings } from '$lib/settings/settingsStore.svelte';
-	import networkStore from '$lib/store';
-	import Test from '$lib/editor/Test.svelte';
+	import { appSettings, serverSettings } from './settings/settings';
+	import networkStore from './store';
 
 	let selectedNode;
 	let selectedEdge;
-	let cypher = $state(appSettings.appSettings.initialCypher);
+	let cypher = $appSettings.initialCypher;
 
 	// execute the current cypher
 	async function executeCurrentCypher(c, clear = true) {
-		const isValid = await networkStore.setServerSettings(serverSettings.serverSettings);
+		const isValid = await networkStore.setServerSettings($serverSettings);
 		if (isValid) {
 			await networkStore.loadNetwork(c, clear);
 		}
@@ -56,27 +55,24 @@
 	 * But only try it once every second (not on every key-stroke in teh settings-dialog).
 	 * TODO: It would be propably better to emit new server settings only if the are valid! */
 	const runQueryDebounced = debounce(() => executeCurrentCypher(cypher), 1000);
+	const unsubscribeSettings = serverSettings.subscribe(runQueryDebounced);
 
-	$effect(() => {
-		serverSettings.serverSettings;
-		runQueryDebounced();
-	});
+	onDestroy(unsubscribeSettings);
 </script>
 
 <div id="editor">
-	<Test test="2" />
 	<header>
-		<CypherInput execute={executeCurrentCypher} {cypher} />
+		<CypherInput bind:cypher on:execute={executeCurrentCypher} />
 	</header>
 
 	<div class="flex-container">
 		<section id="graph">
 			<Graph
-				{selectedNode}
-				{selectedEdge}
-				focusChanged={handleDoubleClick}
-				{focusOnSelected}
-				{loadConnectionsForSelectedNode}
+				bind:selectedNode
+				bind:selectedEdge
+				on:focusChanged={handleDoubleClick}
+				on:focusOnSelected={focusOnSelected}
+				on:loadConnectionsForSelectedNode={loadConnectionsForSelectedNode}
 			/>
 		</section>
 

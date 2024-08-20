@@ -4,5 +4,5 @@ import { writable } from 'svelte/store';
 const layoutHierarchical = false;
 
 export const editorState = writable({
-	layoutHierarchical
+	layoutHierarchical,
 });
