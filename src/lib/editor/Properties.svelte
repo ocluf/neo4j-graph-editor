@@ -1,8 +1,7 @@
 <script>
 	import { defaultNodeStyle, nodeGroupStyles } from '../settings/labels';
 
-	export let selectedNode;
-	export let selectedEdge;
+	let { selectedNode = $bindable(), selectedEdge = $bindable() } = $props();
 
 	function getNeo4jValue(value) {
 		console.log(`[Properties.getNeo4jValue] value:${JSON.stringify(value)}`, value);
@@ -18,7 +17,7 @@
 		return [
 			`background:white`,
 			`color:${nodeStyle.font.color}`,
-			`border: 2px solid ${nodeStyle.color.border}`,
+			`border: 2px solid ${nodeStyle.color.border}`
 		].join(';');
 	}
 </script>
@@ -30,7 +29,7 @@
 				<h3>Node</h3>
 			</legend>
 			<form class="properties">
-				{#each Object.keys(selectedNode).filter(k => !['label', 'labels', 'properties', 'font', 'title'].includes(k)) as key}
+				{#each Object.keys(selectedNode).filter((k) => !['label', 'labels', 'properties', 'font', 'title'].includes(k)) as key}
 					<label for={key}>{key}</label>
 					<input type="text" id={key} name={key} value={selectedNode[key]} readonly />
 				{/each}
@@ -58,7 +57,7 @@
 					<h3>Properties</h3>
 				</legend>
 				<form class="properties">
-					{#each Object.keys(selectedNode.properties).filter(k => !['id', 'name'].includes(k)) as key}
+					{#each Object.keys(selectedNode.properties).filter((k) => !['id', 'name'].includes(k)) as key}
 						<label for={key}>{key}</label>
 						<input
 							type="text"

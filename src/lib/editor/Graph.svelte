@@ -11,8 +11,7 @@
 
 	let {
 		selectedNode = $bindable(),
-		selectedEdge,
-		focusNodeId,
+		selectedEdge = $bindable(),
 		focusChanged,
 		focusOnSelected,
 		loadConnectionsForSelectedNode
@@ -23,7 +22,7 @@
 	let networkOptions = {};
 	let unsubscribeNetworkStore;
 	let unsubscribeEditorState;
-	let loading = networkStore.loading;
+	let focusNodeId;
 
 	function listenToStoreEvents() {
 		// Listen to events of the nodes DataSet (e.g. "add", "remove", "update")
@@ -179,17 +178,17 @@
 </svelte:head>
 
 <div id="graph">
-	<div id="network" disabled={$loading} />
-	<div id="navigation" disabled={$loading}>
-		<LayoutButtons on:fitNetwork={fitNetwork} />
+	<div id="network" disabled={networkStore.$loading} />
+	<div id="navigation" disabled={networkStore.$loading}>
+		<LayoutButtons {fitNetwork} />
 		<NavigationButtons
-			disabled={$loading}
+			disabled={networkStore.$loading}
 			bind:selectedNode
-			on:focusOnSelected={focusOnSelected}
-			on:loadConnectionsForSelectedNode={loadConnectionsForSelectedNode}
+			{focusOnSelected}
+			{loadConnectionsForSelectedNode}
 		/>
 	</div>
-	{#if $loading}
+	{#if networkStore.$loading}
 		<LoadingIndicator />
 	{/if}
 </div>

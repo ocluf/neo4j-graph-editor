@@ -1,8 +1,6 @@
 <script>
-	/** @type {{ execute: function }} */
-	let { execute } = $props();
-
-	let cypher = $state('');
+	/** @type {{ execute: function, cypher: string }} */
+	let { execute, cypher } = $props();
 </script>
 
 <section id="cypher">

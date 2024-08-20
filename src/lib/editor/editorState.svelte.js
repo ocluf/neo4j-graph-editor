@@ -1,15 +1,8 @@
-function createEditorState() {
-	// eslint-disable-next-line no-undef
-	let layoutHierarchical = $state(false);
+import { writable } from 'svelte/store';
 
-	return {
-		get value() {
-			return layoutHierarchical;
-		},
-		set value(value) {
-			layoutHierarchical = value;
-		}
-	};
-}
+// set hierarchical network layout
+const layoutHierarchical = false;
 
-export const editorState = createEditorState();
+export const editorState = writable({
+	layoutHierarchical
+});

@@ -4,11 +4,9 @@
 	import { editorState } from './editorState.svelte';
 	import networkStore from '../../../src/lib/store';
 
-	let { selectedNode, focusOnSelected, loadConnectionsForSelectedNode } = $props();
-	export let selectedNode;
-	let unsubscribeEditorState;
+	let { selectedNode = $bindable(), focusOnSelected, loadConnectionsForSelectedNode } = $props();
 
-	const dispatch = createEventDispatcher();
+	let unsubscribeEditorState;
 
 	function createNewNode() {
 		//create new node and connect it to the selected node.
@@ -21,18 +19,12 @@
 	}
 
 	function centerOnSelectedNode() {
-		dispatch('focusOnSelected');
+		focusOnSelected();
 	}
 
-	function loadConnectionsForSelectedNode() {
-		dispatch('loadConnectionsForSelectedNode');
-	}
-
-	let navCenterTitle;
-
-	$: {
-		navCenterTitle = selectedNode ? 'focus on the selected node' : 'please select a node first';
-	}
+	let navCenterTitle = $derived(
+		selectedNode ? 'focus on the selected node' : 'please select a node first'
+	);
 </script>
 
 <nav>
@@ -44,7 +36,7 @@
 				<button
 					id="nav_center"
 					class="noselect"
-					on:click={centerOnSelectedNode}
+					onclick={centerOnSelectedNode}
 					disabled={!selectedNode}
 					title={navCenterTitle}
 				>
@@ -57,7 +49,7 @@
 				<button
 					id="nav_add"
 					class="noselect"
-					on:click={loadConnectionsForSelectedNode}
+					onclick={() => loadConnectionsForSelectedNode()}
 					disabled={!selectedNode}
 					title={navCenterTitle}
 				>

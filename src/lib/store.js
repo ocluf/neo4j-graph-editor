@@ -87,6 +87,7 @@ class Neo4jNetworkStore {
 			await driver.close();
 			return true;
 		} catch (err) {
+			console.error(err);
 			return false;
 		}
 	}
@@ -251,7 +252,7 @@ class Neo4jNetworkStore {
 			this.clear();
 		}
 
-		//this.connect();
+		await this.connect();
 
 		try {
 			console.log(`[Neo4jNetworkStore.loadNetwork] run:${cypher}`);

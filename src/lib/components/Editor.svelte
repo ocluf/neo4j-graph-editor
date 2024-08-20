@@ -7,15 +7,16 @@
 	import Properties from '$lib/editor/Properties.svelte';
 
 	import { appSettings, serverSettings } from '$lib/settings/settingsStore.svelte';
-	import networkStore from '../../src/lib/store';
+	import networkStore from '$lib/store';
+	import Test from '$lib/editor/Test.svelte';
 
 	let selectedNode;
 	let selectedEdge;
-	let cypher = $appSettings.initialCypher;
+	let cypher = $state(appSettings.appSettings.initialCypher);
 
 	// execute the current cypher
 	async function executeCurrentCypher(c, clear = true) {
-		const isValid = await networkStore.setServerSettings($serverSettings);
+		const isValid = await networkStore.setServerSettings(serverSettings.serverSettings);
 		if (isValid) {
 			await networkStore.loadNetwork(c, clear);
 		}
@@ -55,24 +56,27 @@
 	 * But only try it once every second (not on every key-stroke in teh settings-dialog).
 	 * TODO: It would be propably better to emit new server settings only if the are valid! */
 	const runQueryDebounced = debounce(() => executeCurrentCypher(cypher), 1000);
-	const unsubscribeSettings = serverSettings.subscribe(runQueryDebounced);
 
-	onDestroy(unsubscribeSettings);
+	$effect(() => {
+		serverSettings.serverSettings;
+		runQueryDebounced();
+	});
 </script>
 
 <div id="editor">
+	<Test test="2" />
 	<header>
-		<CypherInput bind:cypher on:execute={executeCurrentCypher} />
+		<CypherInput execute={executeCurrentCypher} {cypher} />
 	</header>
 
 	<div class="flex-container">
 		<section id="graph">
 			<Graph
-				bind:selectedNode
-				bind:selectedEdge
-				on:focusChanged={handleDoubleClick}
-				on:focusOnSelected={focusOnSelected}
-				on:loadConnectionsForSelectedNode={loadConnectionsForSelectedNode}
+				{selectedNode}
+				{selectedEdge}
+				focusChanged={handleDoubleClick}
+				{focusOnSelected}
+				{loadConnectionsForSelectedNode}
 			/>
 		</section>
 

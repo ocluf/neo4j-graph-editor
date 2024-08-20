@@ -1,6 +1,6 @@
 <script>
+	import Editor from '$lib/components/Editor.svelte';
 	import Header from '$lib/components/Header.svelte';
-	import { layoutHierarchical } from '$lib/editor/editorState.svelte';
 </script>
 
 <main>
@@ -9,7 +9,7 @@
 	</header>
 
 	<article>
-		<!-- <Editor /> -->
+		<Editor />
 	</article>
 	<footer>
 		<!-- <Footer /> -->
