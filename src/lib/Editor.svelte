@@ -9,8 +9,8 @@
 	import { appSettings, serverSettings } from './settings/settings';
 	import networkStore from './store';
 
-	let selectedNode;
-	let selectedEdge;
+	let selectedNode = $state();
+	let selectedEdge = $state();
 	let cypher = $appSettings.initialCypher;
 
 	// execute the current cypher

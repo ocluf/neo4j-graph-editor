@@ -41,6 +41,7 @@
 			if (selectedNode) {
 				const nodeId = selectedNode.id;
 				networkGraph.selectNodes([nodeId]);
+				selectedNode = selectedNode;
 			}
 		});
 	}

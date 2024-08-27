@@ -26,6 +26,8 @@ class Neo4jNetworkStore {
 	#neo4jDriver;
 	#neo4jSession;
 
+	#currentCypher;
+
 	/**
 	 * Creates a new Neo4jNetworkStore instance.
 	 * @constructor
@@ -96,7 +98,7 @@ class Neo4jNetworkStore {
 	 * if the settings are valid.
 	 *
 	 * @param {*} serverSettings
-	 * @returns {Boolean} true if the settings are valid, false otherwise.
+	 * @returns {Promise<boolean>} true if the settings are valid, false otherwise.
 	 */
 	async setServerSettings(serverSettings = this.#serverSettings) {
 		const isValid = await this.validateServerSettings(serverSettings);
@@ -181,13 +183,40 @@ class Neo4jNetworkStore {
 			this.#nodes.updateOnly({
 				...node,
 				...newNode,
-				...{
-					id: node.id
-				}
+				id: node.id
 			});
 		} else {
 			// create a new node
 			this.#nodes.add(newNode);
+		}
+	}
+
+	/**
+	 * Updates a property of a node in the network and the Neo4j database.
+	 * @param {Number} id - The id of the node to update
+	 * @param {any[]} updates
+	 */
+	async updateNodeProperty(id, updates) {
+		try {
+			// Update the node in the Neo4j database
+			console.log(
+				`[Neo4jNetworkStore.updateNodeProperty] Updating node ${id} with properties: ${JSON.stringify(updates)}`
+			);
+
+			let query = `MATCH (x) WHERE id(x) = ${id}`;
+			for (const update of updates) {
+				query += ` SET x.${update.key} = $${update.key}`;
+			}
+			const params = updates.reduce((acc, update) => {
+				acc[update.key] = update.value;
+				return acc;
+			}, {});
+
+			await this.#neo4jSession.run(query, params);
+
+			await this.loadNetwork(this.#currentCypher);
+		} catch (error) {
+			console.error(`[Neo4jNetworkStore.updateNodeProperty] Error updating node ${id}:`, error);
 		}
 	}
 
@@ -227,9 +256,7 @@ class Neo4jNetworkStore {
 			this.#edges.updateOnly({
 				...edge,
 				...newEdge,
-				...{
-					id: edge.id
-				}
+				id: edge.id
 			});
 		} else {
 			// create a new edge
@@ -244,6 +271,7 @@ class Neo4jNetworkStore {
 	 * If clear is true the internal node and edge store will be cleared before.
 	 */
 	async loadNetwork(cypher, clear = true) {
+		this.#currentCypher = cypher;
 		this.loading.set(true);
 
 		if (clear) {
@@ -311,6 +339,7 @@ class Neo4jNetworkStore {
 		//console.time('⌚ [Neo4jNetworkStore.parseNeo4jRecords]');
 		records.map(async (x) => {
 			if (x instanceof Neo4j.types.Node) {
+				console.log(`-----------------node, ${x}`);
 				const id = x.identity.toInt();
 				const labels = x.labels;
 				const properties = x.properties;

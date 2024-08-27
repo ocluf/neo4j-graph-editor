@@ -1,16 +1,9 @@
 <script>
+	import { getNeo4jValue } from '$lib/utils';
 	import { defaultNodeStyle, nodeGroupStyles } from '../settings/labels';
+	import EditableProperties from './EditableProperties.svelte';
 
 	let { selectedNode = $bindable(), selectedEdge = $bindable() } = $props();
-
-	function getNeo4jValue(value) {
-		console.log(`[Properties.getNeo4jValue] value:${JSON.stringify(value)}`, value);
-		if (typeof value === 'object' && 'low' in value && 'high' in value) {
-			return Number(value.low);
-		} else {
-			return value;
-		}
-	}
 
 	function getLabelStyle(label) {
 		const nodeStyle = nodeGroupStyles[label.toLowerCase()] || defaultNodeStyle;
@@ -31,12 +24,13 @@
 			<form class="properties">
 				{#each Object.keys(selectedNode).filter((k) => !['label', 'labels', 'properties', 'font', 'title'].includes(k)) as key}
 					<label for={key}>{key}</label>
+
 					<input type="text" id={key} name={key} value={selectedNode[key]} readonly />
 				{/each}
 			</form>
 		</filedset>
 
-		{#if selectedNode.labels}
+		<!-- {#if selectedNode.labels}
 			<filedset>
 				<legend>
 					<h3>Lables</h3>
@@ -49,10 +43,10 @@
 					{/each}
 				</ul>
 			</filedset>
-		{/if}
+		{/if} -->
 
 		{#if selectedNode.properties}
-			<filedset>
+			<!-- <filedset>
 				<legend>
 					<h3>Properties</h3>
 				</legend>
@@ -68,14 +62,15 @@
 						/>
 					{/each}
 				</form>
-			</filedset>
+			</filedset> -->
+			<EditableProperties properties={selectedNode.properties} nodeId={selectedNode.id} />
 		{/if}
 	{:else if selectedEdge}
 		<filedset>
 			<legend>
 				<h3>Edge</h3>
 			</legend>
-			<form class="properties">
+			<form class="properties editable">
 				{#each Object.keys(selectedEdge) as key}
 					<label for={key}>{key}</label>
 					<input type="text" id={key} name={key} value={selectedEdge[key]} readonly />
@@ -148,5 +143,9 @@
 	.properties label {
 		text-align: right;
 		margin-top: 0.5em 0;
+	}
+
+	legend {
+		margin-top: 2em;
 	}
 </style>
