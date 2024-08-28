@@ -1,7 +1,7 @@
 import { defaultNodeStyle, nodeGroupStyles } from '../settings/labels';
 
 const defaultSettings = {
-	isHierarchical: false,
+	isHierarchical: false
 };
 
 /**
@@ -27,7 +27,7 @@ export function getOptions(settings = defaultSettings) {
 			selectable: true,
 
 			// When true, on selecting a node, its connecting edges are highlighted. [true]
-			selectConnectedEdges: false,
+			selectConnectedEdges: false
 		},
 
 		// https://visjs.github.io/vis-network/docs/network/manipulation.html
@@ -36,7 +36,7 @@ export function getOptions(settings = defaultSettings) {
 			// Even when false, the manipulation API through the methods will still work.
 			// This property is optional.
 			// If you define any of the options below and enabled is undefined, this will be set to true. [false]
-			enabled: false,
+			enabled: false
 		},
 
 		// https://visjs.github.io/vis-network/docs/network/physics.html
@@ -44,9 +44,9 @@ export function getOptions(settings = defaultSettings) {
 			enabled: true,
 			barnesHut: {
 				centralGravity: 0,
-				springLength: 200,
+				springLength: 200
 			},
-			minVelocity: 0.75,
+			minVelocity: 0.75
 		},
 
 		// https://visjs.github.io/vis-network/docs/network/nodes.html
@@ -56,29 +56,29 @@ export function getOptions(settings = defaultSettings) {
 			shadow: false,
 			widthConstraint: {
 				minimum: 100,
-				maximum: 100,
+				maximum: 100
 			},
 			// default node style (if no group is set)
-			...defaultNodeStyle,
+			...defaultNodeStyle
 		},
 
 		// https://visjs.github.io/vis-network/docs/network/edges.html
 		edges: {
 			smooth: {
-				type: 'continuous',
+				type: 'continuous'
 				//forceDirection: 'none',
 				//roundness: 0.01,
 			},
 			arrows: {
 				to: {
-					enabled: true,
-				},
+					enabled: true
+				}
 			},
-			shadow: false,
+			shadow: false
 		},
 
 		// https://visjs.github.io/vis-network/docs/network/groups.html
-		groups: nodeGroupStyles,
+		groups: nodeGroupStyles
 	};
 
 	// switch between auto- and hierarchical layout
@@ -90,12 +90,12 @@ export function getOptions(settings = defaultSettings) {
 				levelSeparation: 300,
 				nodeSpacing: 100,
 				treeSpacing: 400,
-				sortMethod: 'directed',
-			},
+				sortMethod: 'directed'
+			}
 		};
 	} else {
 		options.layout = {
-			hierarchical: false,
+			hierarchical: false
 		};
 	}
 

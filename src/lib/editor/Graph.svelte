@@ -48,7 +48,7 @@
 
 	function listenToGraphEvents() {
 		networkGraph.on('selectNode', (params) => {
-			console.log(`[Graph⚡event] "selectNode":`, params);
+			console.error(`[Graph⚡event] "selectNode":`, params);
 			if (params.nodes && params.nodes.length) {
 				selectedNode = networkStore.nodes.get(params.nodes[0]);
 			}
@@ -237,5 +237,32 @@
 	#network:diabled {
 		opacity: 0.3;
 		pointer-events: none;
+	}
+	.add-node-button {
+		position: absolute;
+		top: 352px;
+		left: 288px;
+
+		color: var(--text-on-primary);
+		border: none;
+		border-radius: 4px;
+		height: 30px;
+		padding: 0 12px;
+		font-size: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+		transition: all 0.3s ease;
+	}
+
+	.add-node-button:hover {
+		background-color: var(--primary-color-dark);
+		transform: scale(1.05);
+	}
+
+	.add-node-button:active {
+		transform: scale(0.95);
 	}
 </style>

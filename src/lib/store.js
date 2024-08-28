@@ -139,7 +139,7 @@ class Neo4jNetworkStore {
 	/**
 	 * Adds a node with the given properties to the network.
 	 * If a node with the given id already exists, it will be updated.
-	 * The node is added to the database, but only the internal store.
+	 * The node is not added to the database, but only the internal store.
 	 *
 	 * @param {Number} id
 	 * @param {String} label
@@ -220,6 +220,53 @@ class Neo4jNetworkStore {
 		}
 	}
 
+	async addNodeToDB(nodeId, edgeName, edgeDirection, group, nodeName) {
+		try {
+			let query;
+			if (edgeDirection === 'outgoing') {
+				query = `
+					MATCH (existingNode)
+					WHERE id(existingNode) = $nodeId
+					CREATE (existingNode)-[r:${edgeName}]->(newNode:${group} {name: $nodeName})
+					RETURN id(newNode) as newNodeId
+				`;
+			} else if (edgeDirection === 'incoming') {
+				query = `
+					MATCH (existingNode)
+					WHERE id(existingNode) = $nodeId
+					CREATE (newNode:${group} {name: $nodeName})-[r:${edgeName}]->(existingNode)
+					RETURN id(newNode) as newNodeId
+				`;
+			} else {
+				throw new Error('Invalid edge direction. Must be "outgoing" or "incoming".');
+			}
+
+			const result = await this.#neo4jSession.run(query, { nodeId, nodeName });
+			const newNodeId = result.records[0].get('newNodeId').toNumber();
+
+			console.log(`New node created with ID: ${newNodeId}, group: ${group}, and name: ${nodeName}`);
+
+			const cypher = `MATCH (n1)<-[r]->(n2) WHERE ID(n1)=${nodeId} RETURN n1,r,n2`;
+			// Reload the network to reflect the changes
+			await this.loadNetwork(cypher);
+
+			return newNodeId;
+		} catch (error) {
+			console.error('[Neo4jNetworkStore.addNodeToDB] Error adding new node:', error);
+			throw error;
+		}
+	}
+
+	async removeNodeFromDB(nodeId) {
+		try {
+			await this.#neo4jSession.run(`MATCH (n) WHERE id(n) = ${nodeId} DETACH DELETE n`);
+			await this.loadNetwork(this.#currentCypher);
+		} catch (error) {
+			console.error('[Neo4jNetworkStore.removeNodeFromDB] Error removing node:', error);
+			throw error;
+		}
+	}
+
 	/**
 	 * Adds a edge to the network.
 	 * If a edge with the given id already exists, it will be updated.
@@ -272,7 +319,8 @@ class Neo4jNetworkStore {
 	 */
 	async loadNetwork(cypher, clear = true) {
 		this.#currentCypher = cypher;
-		this.loading.set(true);
+		//todo set loading to true without have it rerender the network before it is done loading
+		//this.loading.set(true);
 
 		if (clear) {
 			// clear the current network before loading a new one.
