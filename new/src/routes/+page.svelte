@@ -1,2 +1,11 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
+<script>
+	import Editor from '$lib/components/Editor.svelte';
+	import Footer from '$lib/components/Footer.svelte';
+	import Header from '$lib/components/Header.svelte';
+</script>
+
+<div class="flex flex-col h-screen">
+	<Header />
+	<Editor />
+	<Footer />
+</div>
