@@ -20,12 +20,11 @@ class Neo4jNetworkStore {
 
 	/* internal server-setting.
 	 * use setServerSettings to set them! */
-	#serverSettings;
+	
 
 	// the store creates one session and keeps it open.
 	#neo4jDriver;
 	#neo4jSession;
-
 	#currentCypher;
 
 	/**

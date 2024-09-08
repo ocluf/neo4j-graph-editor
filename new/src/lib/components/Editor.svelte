@@ -6,19 +6,26 @@
 	import { Label } from './ui/label';
 	import { Input } from './ui/input';
 	import Button from './ui/button/button.svelte';
+	import { getOptions } from '$lib/networkOptions';
 
 	let graph: HTMLDivElement;
 	let changedProperties: Record<string, any> = $state({});
+	let selectedNode = $derived(
+		neo4jNetwork.selectedNodeId && neo4jNetwork.nodes.get(neo4jNetwork.selectedNodeId)
+	);
+	let network: Network;
 
 	$effect(() => {
 		const data = { nodes: neo4jNetwork.nodes, edges: neo4jNetwork.edges };
-		const network = new Network(graph, data, {});
+		network = new Network(graph, data, getOptions());
 
 		network.on('selectNode', (params) => {
-			const selectedNodeId = params.nodes[0];
-			// @ts-ignore
-			neo4jNetwork.selectedNode = neo4jNetwork.nodes.get(selectedNodeId);
-			changedProperties = {};
+			neo4jNetwork.selectedNodeId = params.nodes[0];
+		});
+
+		network.on('doubleClick', (params) => {
+			const nodeId = params.nodes[0];
+			neo4jNetwork.loadAdditionalConnections(nodeId);
 		});
 	});
 
@@ -27,28 +34,31 @@
 		changedProperties[key] = value;
 	}
 
-	function saveChanges() {
-		// Implement the logic to save changes here
-		console.log('Saving changes:', changedProperties);
-		changedProperties = {};
+	async function saveChanges() {
+		if (neo4jNetwork.selectedNodeId) {
+			const updates = Object.entries(changedProperties).map(([key, value]) => ({ key, value }));
+			await neo4jNetwork.updateNodeProperty(neo4jNetwork.selectedNodeId, updates);
+			changedProperties = {};
+			const nodeId = neo4jNetwork.selectedNodeId;
+			neo4jNetwork.selectedNodeId = null;
+			neo4jNetwork.selectedNodeId = nodeId;
+		}
 	}
 </script>
 
 <div class="relative flex-grow">
-	{#if neo4jNetwork.selectedNode}
+	{#if selectedNode}
 		<div class="absolute z-50 top-5 right-5 w-[275px]">
 			<Card.Root>
 				<Card.Header>
 					<div class="flex items-center justify-between">
-						<Card.Title>{neo4jNetwork.selectedNode.label}</Card.Title>
-						<Badge variant="outline"
-							><span class="mr-3">ID</span> {neo4jNetwork.selectedNode.id}</Badge
-						>
+						<Card.Title>{selectedNode.label}</Card.Title>
+						<Badge variant="outline"><span class="mr-3">ID</span> {selectedNode.id}</Badge>
 					</div>
 				</Card.Header>
 				<Card.Content>
 					<div class="grid gap-4 py-4">
-						{#each Object.entries(neo4jNetwork.selectedNode.properties) as [key, value]}
+						{#each Object.entries(selectedNode.properties) as [key, value]}
 							<div class="grid grid-cols-1 items-center gap-2">
 								<Label for={key} class="mb-1">{key}</Label>
 								<Input

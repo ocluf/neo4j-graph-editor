@@ -1,6 +1,4 @@
-const defaultSettings = {
-	isHierarchical: false
-};
+import type { Options } from 'vis-network';
 
 /* see https://visjs.github.io/vis-network/docs/network/nodes.html for availibe options. */
 export const nodeGroupStyles = {
@@ -58,6 +56,10 @@ export const defaultNodeStyle = {
 	}
 };
 
+const defaultSettings = {
+	isHierarchical: false
+};
+
 /**
  * Set vis-network options.
  * @see https://visjs.github.io/vis-network/docs/network/#options
@@ -65,7 +67,9 @@ export const defaultNodeStyle = {
  * @param {*} settings
  * @returns {*} vis-network options
  */
-export function getOptions(settings = defaultSettings) {
+export function getOptions(settings = defaultSettings): ExtendedOptions {
+	//console.debug(`[getOptions] settings:${JSON.stringify(settings)}`);
+
 	const options = {
 		// see https://visjs.github.io/vis-network/docs/network/interaction.html
 		interaction: {
@@ -94,11 +98,21 @@ export function getOptions(settings = defaultSettings) {
 		// https://visjs.github.io/vis-network/docs/network/physics.html
 		physics: {
 			enabled: true,
+			maxVelocity: 20,
 			barnesHut: {
 				centralGravity: 0,
-				springLength: 200
+				springLength: 200,
+				avoidOverlap: 1
 			},
-			minVelocity: 0.75
+			minVelocity: 0.75,
+			adaptiveTimestep: true,
+			stabilization: {
+				enabled: false,
+				iterations: 1000,
+				updateInterval: 1,
+				onlyDynamicEdges: false,
+				fit: true
+			}
 		},
 
 		// https://visjs.github.io/vis-network/docs/network/nodes.html
@@ -130,8 +144,42 @@ export function getOptions(settings = defaultSettings) {
 		},
 
 		// https://visjs.github.io/vis-network/docs/network/groups.html
-		groups: nodeGroupStyles
+		groups: nodeGroupStyles,
+		autoResize: true
 	};
 
+	// switch between auto- and hierarchical layout
+	if (settings && settings.isHierarchical) {
+		// see https://visjs.github.io/vis-network/docs/network/layout.html
+		options.layout = {
+			hierarchical: {
+				direction: 'LR', // Left to Right
+				levelSeparation: 300,
+				nodeSpacing: 100,
+				treeSpacing: 400,
+				sortMethod: 'directed'
+			}
+		};
+	} else {
+		options.layout = {
+			hierarchical: false
+		};
+	}
+
+	//console.log(`[getOptions] options:${JSON.stringify(options)}`);
 	return options;
+}
+
+interface ExtendedOptions extends Options {
+	layout?: {
+		hierarchical?:
+			| boolean
+			| {
+					direction?: string;
+					levelSeparation?: number;
+					nodeSpacing?: number;
+					treeSpacing?: number;
+					sortMethod?: string;
+			  };
+	};
 }

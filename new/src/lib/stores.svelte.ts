@@ -1,12 +1,15 @@
 import { DataSet } from 'vis-data';
 import * as neo4j from 'neo4j-driver';
 import { toast } from 'svelte-sonner';
+import { defaultNodeStyle, nodeGroupStyles } from './networkOptions';
 
 type Node = {
 	id: number;
 	label: string;
 	labels: string[];
-	properties: Record<string, any>;
+	properties: Record<string, string>;
+	level: number;
+	group: string;
 };
 
 type Edge = {
@@ -21,24 +24,24 @@ class Neo4jNetwork {
 	nodes: DataSet<Node>;
 	edges: DataSet<Edge>;
 
-	selectedNode: Node | null = $state(null);
-	selectedEdge: Edge | null = $state(null);
+	selectedNodeId: number | null = $state(null);
 
-	#currentCypher: string;
-	#neo4jDriver: neo4j.Driver;
-	#neo4jSession: neo4j.Session;
+	#currentCypher: string = '';
+	#neo4jDriver!: neo4j.Driver;
+	#neo4jSession!: neo4j.Session;
 
 	constructor(serverSettings: Settings) {
 		this.nodes = new DataSet([]);
 		this.edges = new DataSet([]);
 		this.initialize(serverSettings);
+		this.handleDataSetEvent = this.handleDataSetEvent.bind(this);
 	}
 
 	async initialize(serverSettings: Settings) {
 		await this.connect(serverSettings);
 		await this.loadCypher(serverSettings.initialCypher);
-		this.nodes.on('*', this.#handleDataSetEvent);
-		this.edges.on('*', this.#handleDataSetEvent);
+		this.nodes.on('*', this.handleDataSetEvent);
+		this.edges.on('*', this.handleDataSetEvent);
 	}
 
 	async connect(serverSettings: Settings) {
@@ -69,8 +72,12 @@ class Neo4jNetwork {
 		}
 	}
 
-	async loadCypher(cypher: string) {
+	async loadCypher(cypher: string, clear = true) {
 		try {
+			if (clear) {
+				// clear the current network before loading a new one.
+				this.#clear();
+			}
 			const result = await this.#neo4jSession.run(cypher);
 			result.records.forEach((records) => {
 				this.#parseNeo4jRecords(records);
@@ -104,32 +111,80 @@ class Neo4jNetwork {
 			}, {});
 
 			await this.#neo4jSession.run(query, params);
-
-			await this.loadCypher(this.#currentCypher);
+			await this.loadCypher(this.#currentCypher, false);
 		} catch (error) {
 			console.error(`[Neo4jNetworkStore.updateNodeProperty] Error updating node ${id}:`, error);
 		}
 	}
 
+	async loadAdditionalConnections(nodeId) {
+		const cypher = `MATCH (n1)<-[r]->(n2) WHERE ID(n1)=${nodeId} RETURN n1,r,n2`;
+		await this.loadCypher(cypher);
+	}
+
+	#clear() {
+		this.nodes.clear();
+		this.edges.clear();
+	}
+
 	#parseNeo4jRecords(records: neo4j.Record[]) {
-		records.map((record) => {
+		const nodesToUpdate: Node[] = [];
+		const edgesToUpdate: Edge[] = [];
+
+		records.forEach((record) => {
 			if (record instanceof neo4j.types.Node) {
 				const id = record.identity.toInt();
 				const labels = record.labels;
 				const properties = record.properties;
 				const label = properties.text || properties.name || properties.title;
-				const node: Node = { id, label, labels, properties };
-				this.nodes.update(node);
+				const level = this.#getLevelByLabels(labels);
+				const group = labels[0] ? labels[0].toLowerCase() : null;
+				const node = {
+					id,
+					label,
+					labels,
+					properties,
+					level,
+					group
+				};
+
+				nodesToUpdate.push(node);
 			} else if (record instanceof neo4j.types.Relationship) {
 				const id = record.identity.toInt();
 				const from = record.start.toInt();
 				const to = record.end.toInt();
 				const type = record.type;
 				const label = type || '';
-				const edge: Edge = { id, label, from, to, type };
-				this.edges.update(edge);
+				edgesToUpdate.push({
+					id,
+					label,
+					from,
+					to,
+					type
+				});
 			}
 		});
+
+		if (nodesToUpdate.length > 0) {
+			this.nodes.update(nodesToUpdate);
+		}
+		if (edgesToUpdate.length > 0) {
+			this.edges.update(edgesToUpdate);
+		}
+	}
+
+	/**
+	 * Helper function that returns a vis-hierarchy-level
+	 * based on the provides labels.
+	 * TODO: This is not ideal, because this is very domain-specific.
+	 *
+	 * @param {String[]} labels
+	 * @returns {Number} vis-hierarchy-level [0..n]
+	 */
+	#getLevelByLabels(labels: string[]): number {
+		const label = labels[0]?.toLowerCase();
+		console.log(label);
+		return nodeGroupStyles[label]?.level || defaultNodeStyle?.level || 0;
 	}
 
 	/**
@@ -140,8 +195,11 @@ class Neo4jNetwork {
 	 * @param {Object | null} properties
 	 * @param {String | Number} senderId
 	 */
-	#handleDataSetEvent(event, properties, senderId) {
-		console.log('event', event);
+	handleDataSetEvent(event, properties, senderId) {
+		if (this.selectedNode) {
+			const currentNodeId = this.selectedNode.id;
+			this.selectedNode = this.nodes.get(currentNodeId);
+		}
 	}
 }
 
@@ -172,7 +230,3 @@ function createSettings() {
 
 export const settings = createSettings();
 export const neo4jNetwork = new Neo4jNetwork(settings.settings);
-
-$effect.root(() => {
-	console.log('settings test', settings.settings);
-});

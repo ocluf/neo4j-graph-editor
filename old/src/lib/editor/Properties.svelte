@@ -63,7 +63,7 @@
 					{/each}
 				</form>
 			</filedset> -->
-			<EditableProperties properties={selectedNode.properties} nodeId={selectedNode.id} />
+			<EditableProperties selectedNode={selectedNode} properties={selectedNode.properties} nodeId={selectedNode.id} />
 		{/if}
 	{:else if selectedEdge}
 		<filedset>
