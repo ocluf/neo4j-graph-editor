@@ -8,7 +8,6 @@
 	import Button from './ui/button/button.svelte';
 	import { getOptions } from '$lib/networkOptions';
 	import { throttle } from '$lib/utils';
-
 	let graph: HTMLDivElement;
 	let changedProperties: Record<string, any> = $state({});
 	let selectedNode = $derived(
@@ -21,6 +20,14 @@
 		network = new Network(graph, data, getOptions());
 
 		network.on('selectNode', (params) => {
+			const nodes = network.getSelectedNodes();
+			const nodePosition = network.getPosition(nodes[0]);
+
+			if (neo4jNetwork.isMouseInHoverArea(nodePosition.x, nodePosition.y)) {
+				neo4jNetwork.selectedNodeId = null;
+				network.unselectAll();
+				return;
+			}
 			neo4jNetwork.selectedNodeId = params.nodes[0];
 		});
 
@@ -28,13 +35,59 @@
 			neo4jNetwork.selectedNodeId = null;
 		});
 
-		const updateMousePosition = throttle((event) => {
-			const position = network.DOMtoCanvas({ x: event.screenX, y: event.screenY });
+		network.on('dragStart', (params) => {
+			console.log('dragStart', params);
+			// Check if there's a node at the drag start location
+			console.log('params.pointer.canvas', params.pointer.canvas);
+			const nodeAtDragStart = network.getNodeAt({
+				x: params.pointer.DOM.x,
+				y: params.pointer.DOM.y
+			});
+			const nodePosition = network.getPosition(nodeAtDragStart);
+			if (nodeAtDragStart && neo4jNetwork.isMouseInHoverArea(nodePosition.x, nodePosition.y)) {
+				console.log('Node is in hover area at drag start');
+				network.setOptions({
+					physics: {
+						enabled: false
+					},
+					interaction: {
+						dragNodes: false,
+						dragView: false
+					}
+				});
+				neo4jNetwork.addGhostNode();
+			}
+		});
+
+		network.on('dragEnd', (params) => {
+			neo4jNetwork.removeGhostNode();
+			network.setOptions({
+				physics: {
+					enabled: true
+				},
+				interaction: {
+					dragNodes: true,
+					dragView: true
+				}
+			});
+		});
+		network.on('doubleClick', (params) => {
+			if (neo4jNetwork.selectedNodeId) {
+				const cypher = `MATCH (n1)<-[r]->(n2) WHERE ID(n1)=${neo4jNetwork.selectedNodeId} RETURN n1,r,n2`;
+				neo4jNetwork.loadCypher(cypher);
+			}
+		});
+
+		const updateMousePosition = throttle((event: MouseEvent) => {
+			const rect = graph.getBoundingClientRect();
+			const position = network.DOMtoCanvas({
+				x: event.clientX - rect.left,
+				y: event.clientY - rect.top
+			});
+
 			neo4jNetwork.canvasMousePositionX = position.x;
 			neo4jNetwork.canvasMousePositionY = position.y;
-
-			console.log('updateMousePosition', position);
-		}, 100); // Updates at most every 100ms
+		}, 25);
 
 		graph.addEventListener('mousemove', updateMousePosition);
 

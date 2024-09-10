@@ -33,11 +33,19 @@ class Neo4jNetwork {
 	#neo4jDriver!: neo4j.Driver;
 	#neo4jSession!: neo4j.Session;
 
+	visibleRadius: number = 50; // Radius of the visible circle
+	hoverRadius: number = 60; // Radius of the hidden hover circle
+
 	constructor(serverSettings: Settings) {
 		this.nodes = new DataSet([]);
 		this.edges = new DataSet([]);
 		this.initialize(serverSettings);
 		this.handleDataSetEvent = this.handleDataSetEvent.bind(this);
+		// An ugly hack where the nodes get updated with there exising label every 50ms.
+		// This is necessary to trigger ctxRenderer so it can recalculate the hover ring state.
+		// TODO: if performance is an issue, you could update this to track the node that is currently being hovered.
+		// over with onNodehover and onNodeBlur event. and only update that one node in the loop.
+		this.#nodeRenderLoop();
 	}
 
 	async initialize(serverSettings: Settings) {
@@ -92,6 +100,150 @@ class Neo4jNetwork {
 		}
 	}
 
+	#nodeRenderLoop() {
+		const updateNodeLabel = () => {
+			this.nodes.forEach((node) => {
+				if (node.label) {
+					// Set the label to its current value
+					this.nodes.update({ id: node.id, label: node.label });
+				}
+				if (node.id === 'ghost') {
+					// Update ghost node position to current mouse position
+					this.nodes.update({
+						id: 'ghost',
+						x: this.canvasMousePositionX,
+						y: this.canvasMousePositionY
+					});
+				}
+			});
+			setTimeout(updateNodeLabel, 20);
+		};
+
+		updateNodeLabel();
+	}
+
+	isMouseInHoverArea(nodeX: number, nodeY: number): boolean {
+		if (this.canvasMousePositionX !== null && this.canvasMousePositionY !== null) {
+			const dx = this.canvasMousePositionX - nodeX;
+			const dy = this.canvasMousePositionY - nodeY;
+			const distanceSquared = dx * dx + dy * dy;
+			return (
+				distanceSquared <= this.hoverRadius * this.hoverRadius &&
+				distanceSquared > this.visibleRadius * this.visibleRadius
+			);
+		}
+		return false;
+	}
+
+	addGhostNode() {
+		const ghostNode = {
+			id: 'ghost',
+			x: this.canvasMousePositionX,
+			y: this.canvasMousePositionY,
+			label: '+',
+			fixed: true,
+			physics: false,
+			size: 100,
+			ctxRenderer: ({
+				ctx,
+				x,
+				y,
+				style,
+				label
+			}: {
+				ctx: CanvasRenderingContext2D;
+				x: number;
+				y: number;
+				label: string;
+			}) => {
+				return {
+					drawNode: () => {
+						// Draw the ghost node
+						ctx.beginPath();
+						ctx.arc(x, y, style.size / 2, 0, 2 * Math.PI);
+						ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+						ctx.fill();
+						ctx.strokeStyle = 'rgba(150, 150, 150, 0.8)';
+						ctx.lineWidth = 2;
+						ctx.stroke();
+
+						// Draw the label
+						ctx.fillStyle = 'rgba(100, 100, 100, 0.8)';
+						ctx.font = `${24}px Arial`;
+						ctx.textAlign = 'center';
+						ctx.textBaseline = 'middle';
+						ctx.fillText(label, x, y);
+					}
+				};
+			}
+		};
+
+		this.nodes.update(ghostNode);
+
+		// Remove the ghost node after a short delay
+		setTimeout(() => {
+			this.nodes.remove(-1);
+		}, 2000);
+	}
+
+	removeGhostNode() {
+		// Remove the ghost node from the nodes DataSet
+		this.nodes.remove('ghost');
+	}
+
+	ctxRenderer = ({
+		ctx,
+		x,
+		y,
+		style,
+		label
+	}: {
+		ctx: CanvasRenderingContext2D;
+		x: number;
+		y: number;
+		style: Record<string, any>;
+		label: string;
+		state: { hover: boolean; selected: boolean };
+	}) => {
+		const fontSize = 14;
+		ctx.font = `${fontSize}px Arial`;
+
+		return {
+			drawNode: () => {
+				// Calculate distance from mouse to node center
+				const isMouseInHoverArea = this.isMouseInHoverArea(x, y);
+
+				// Draw hover circle in the background only if mouse is in the hover area
+				if (isMouseInHoverArea) {
+					// Draw outer circle (donut)
+					ctx.beginPath();
+					ctx.arc(x, y, this.hoverRadius, 0, 2 * Math.PI);
+					ctx.fillStyle = 'rgba(0, 0, 0, 1)'; // Semi-transparent black
+					ctx.fill();
+					ctx.strokeStyle = 'rgba(0, 0, 0, 1)'; // Semi-transparent black border
+					ctx.lineWidth = 1;
+					ctx.stroke();
+				}
+
+				// Draw visible circle
+				ctx.beginPath();
+				ctx.arc(x, y, this.visibleRadius, 0, 2 * Math.PI);
+				ctx.fillStyle = style.color;
+				ctx.fill();
+				ctx.strokeStyle = style.color.border;
+				ctx.lineWidth = style.borderWidth;
+				ctx.stroke();
+
+				// Draw label inside the circle
+				ctx.fillStyle = style?.font?.color || 'black';
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'middle';
+				ctx.fillText(label, x, y);
+			},
+			nodeDimensions: { width: this.hoverRadius * 2, height: this.hoverRadius * 2 }
+		};
+	};
+
 	/**
 	 * Updates a property of a node in the network and the Neo4j database.
 	 * @param {Number} id - The id of the node to update
@@ -142,73 +294,7 @@ class Neo4jNetwork {
 				const label = properties.text || properties.name || properties.title;
 				const level = this.#getLevelByLabels(labels);
 				const group = labels[0] ? labels[0].toLowerCase() : null;
-				const ctxRenderer = ({
-					ctx,
-					x,
-					y,
-					style,
-					label,
-					state
-				}: {
-					ctx: CanvasRenderingContext2D;
-					x: number;
-					y: number;
-					style: Record<string, any>;
-					label: string;
-					state: { hover: boolean; selected: boolean };
-				}) => {
-					const visibleRadius = 50; // Radius of the visible circle
-					const hoverRadius = 60; // Radius of the hidden hover circle
-					const fontSize = 14;
-					ctx.font = `${fontSize}px Arial`;
 
-					return {
-						drawNode() {
-							// Calculate distance from mouse to node center
-							const dx = this.canvasMousePositionX - x;
-							const dy = this.canvasMousePositionY - y;
-							const distanceSquared = dx * dx + dy * dy;
-							const isMouseInHoverArea = distanceSquared <= hoverRadius * hoverRadius;
-
-							// Draw hover circle in the background only if mouse is in the hover area
-							if (isMouseInHoverArea) {
-								// Draw outer circle (donut)
-								ctx.beginPath();
-								ctx.arc(x, y, hoverRadius, 0, 2 * Math.PI);
-								ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Semi-transparent black
-								ctx.fill();
-								ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)'; // Semi-transparent black border
-								ctx.lineWidth = 1;
-								ctx.stroke();
-
-								// Draw inner circle (hole)
-								ctx.beginPath();
-								ctx.arc(x, y, visibleRadius, 0, 2 * Math.PI);
-								ctx.fillStyle = 'white'; // Or the background color of your graph
-								ctx.fill();
-							}
-
-							// Draw visible circle
-							ctx.beginPath();
-							ctx.arc(x, y, visibleRadius, 0, 2 * Math.PI);
-							ctx.fillStyle = style.color;
-							ctx.fill();
-							ctx.strokeStyle = style.color.border;
-							ctx.lineWidth = style.borderWidth;
-							ctx.stroke();
-
-							// Draw label inside the circle
-							ctx.fillStyle = style?.font?.color || 'black';
-							ctx.textAlign = 'center';
-							ctx.textBaseline = 'middle';
-							ctx.fillText(label, x, y);
-						},
-						drawExternalLabel() {
-							// No external label for now
-						},
-						nodeDimensions: { width: hoverRadius * 2, height: hoverRadius * 2 }
-					};
-				};
 				const node = {
 					id,
 					label,
@@ -216,7 +302,7 @@ class Neo4jNetwork {
 					properties,
 					level,
 					group,
-					ctxRenderer
+					ctxRenderer: this.ctxRenderer
 				};
 
 				nodesToUpdate.push(node);

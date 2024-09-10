@@ -42,7 +42,7 @@
 		</Dialog.Header>
 		<div class="grid gap-4 py-4">
 			<div class="grid grid-cols-4 items-center gap-4">
-				<Label bin for="server" class="text-right">Server</Label>
+				<Label for="server" class="text-right">Server</Label>
 				<Input id="server" bind:value={newSettings.server} class="col-span-3" />
 			</div>
 			<div class="grid grid-cols-4 items-center gap-4">
