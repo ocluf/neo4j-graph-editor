@@ -28,6 +28,7 @@ class Neo4jNetwork {
 
 	canvasMousePositionX: number | null = null;
 	canvasMousePositionY: number | null = null;
+	ghostNodeConnectionPosition: { x: number; y: number } | null = null;
 
 	#currentCypher: string = '';
 	#neo4jDriver!: neo4j.Driver;
@@ -173,6 +174,25 @@ class Neo4jNetwork {
 						ctx.textAlign = 'center';
 						ctx.textBaseline = 'middle';
 						ctx.fillText(label, x, y);
+
+						// Draw line from center to ghost node connection position
+
+						if (this.ghostNodeConnectionPosition) {
+							ctx.beginPath();
+							ctx.moveTo(x, y);
+							const nodeRadius = style.size / 2;
+							const dx = this.ghostNodeConnectionPosition.x - x;
+							const dy = this.ghostNodeConnectionPosition.y - y;
+							const length = Math.sqrt(dx * dx + dy * dy);
+							const unitX = dx / length;
+							const unitY = dy / length;
+							const endX = x + (length - nodeRadius) * unitX;
+							const endY = y + (length - nodeRadius) * unitY;
+							ctx.lineTo(endX, endY);
+							ctx.strokeStyle = 'rgba(150, 150, 150, 0.8)';
+							ctx.lineWidth = 2;
+							ctx.stroke();
+						}
 					}
 				};
 			}

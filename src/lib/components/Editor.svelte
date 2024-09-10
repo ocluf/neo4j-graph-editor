@@ -43,8 +43,13 @@
 				x: params.pointer.DOM.x,
 				y: params.pointer.DOM.y
 			});
+
+			if (nodeAtDragStart === undefined) {
+				return;
+			}
+
 			const nodePosition = network.getPosition(nodeAtDragStart);
-			if (nodeAtDragStart && neo4jNetwork.isMouseInHoverArea(nodePosition.x, nodePosition.y)) {
+			if (neo4jNetwork.isMouseInHoverArea(nodePosition.x, nodePosition.y)) {
 				console.log('Node is in hover area at drag start');
 				network.setOptions({
 					physics: {
@@ -55,12 +60,17 @@
 						dragView: false
 					}
 				});
+				neo4jNetwork.ghostNodeConnectionPosition = {
+					x: nodePosition.x,
+					y: nodePosition.y
+				};
 				neo4jNetwork.addGhostNode();
 			}
 		});
 
 		network.on('dragEnd', (params) => {
 			neo4jNetwork.removeGhostNode();
+			neo4jNetwork.ghostNodeConnectionPosition = null;
 			network.setOptions({
 				physics: {
 					enabled: true
