@@ -26,6 +26,9 @@ class Neo4jNetwork {
 
 	selectedNodeId: number | null = $state(null);
 
+	canvasMousePositionX: number | null = null;
+	canvasMousePositionY: number | null = null;
+
 	#currentCypher: string = '';
 	#neo4jDriver!: neo4j.Driver;
 	#neo4jSession!: neo4j.Session;
@@ -139,13 +142,81 @@ class Neo4jNetwork {
 				const label = properties.text || properties.name || properties.title;
 				const level = this.#getLevelByLabels(labels);
 				const group = labels[0] ? labels[0].toLowerCase() : null;
+				const ctxRenderer = ({
+					ctx,
+					x,
+					y,
+					style,
+					label,
+					state
+				}: {
+					ctx: CanvasRenderingContext2D;
+					x: number;
+					y: number;
+					style: Record<string, any>;
+					label: string;
+					state: { hover: boolean; selected: boolean };
+				}) => {
+					const visibleRadius = 50; // Radius of the visible circle
+					const hoverRadius = 60; // Radius of the hidden hover circle
+					const fontSize = 14;
+					ctx.font = `${fontSize}px Arial`;
+
+					return {
+						drawNode() {
+							// Calculate distance from mouse to node center
+							const dx = this.canvasMousePositionX - x;
+							const dy = this.canvasMousePositionY - y;
+							const distanceSquared = dx * dx + dy * dy;
+							const isMouseInHoverArea = distanceSquared <= hoverRadius * hoverRadius;
+
+							// Draw hover circle in the background only if mouse is in the hover area
+							if (isMouseInHoverArea) {
+								// Draw outer circle (donut)
+								ctx.beginPath();
+								ctx.arc(x, y, hoverRadius, 0, 2 * Math.PI);
+								ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Semi-transparent black
+								ctx.fill();
+								ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)'; // Semi-transparent black border
+								ctx.lineWidth = 1;
+								ctx.stroke();
+
+								// Draw inner circle (hole)
+								ctx.beginPath();
+								ctx.arc(x, y, visibleRadius, 0, 2 * Math.PI);
+								ctx.fillStyle = 'white'; // Or the background color of your graph
+								ctx.fill();
+							}
+
+							// Draw visible circle
+							ctx.beginPath();
+							ctx.arc(x, y, visibleRadius, 0, 2 * Math.PI);
+							ctx.fillStyle = style.color;
+							ctx.fill();
+							ctx.strokeStyle = style.color.border;
+							ctx.lineWidth = style.borderWidth;
+							ctx.stroke();
+
+							// Draw label inside the circle
+							ctx.fillStyle = style?.font?.color || 'black';
+							ctx.textAlign = 'center';
+							ctx.textBaseline = 'middle';
+							ctx.fillText(label, x, y);
+						},
+						drawExternalLabel() {
+							// No external label for now
+						},
+						nodeDimensions: { width: hoverRadius * 2, height: hoverRadius * 2 }
+					};
+				};
 				const node = {
 					id,
 					label,
 					labels,
 					properties,
 					level,
-					group
+					group,
+					ctxRenderer
 				};
 
 				nodesToUpdate.push(node);

@@ -117,7 +117,7 @@ export function getOptions(settings = defaultSettings): ExtendedOptions {
 
 		// https://visjs.github.io/vis-network/docs/network/nodes.html
 		nodes: {
-			shape: 'circle',
+			shape: 'custom',
 			borderWidth: 3,
 			shadow: false,
 			widthConstraint: {
@@ -157,12 +157,14 @@ export function getOptions(settings = defaultSettings): ExtendedOptions {
 				levelSeparation: 300,
 				nodeSpacing: 100,
 				treeSpacing: 400,
-				sortMethod: 'directed'
+				sortMethod: 'directed',
+				randomSeed: '0.8424645433121738:1725966683399'
 			}
 		};
 	} else {
 		options.layout = {
-			hierarchical: false
+			hierarchical: false,
+			randomSeed: '0.8424645433121738:1725966683399'
 		};
 	}
 

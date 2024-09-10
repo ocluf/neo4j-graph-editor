@@ -7,6 +7,7 @@
 	import { Input } from './ui/input';
 	import Button from './ui/button/button.svelte';
 	import { getOptions } from '$lib/networkOptions';
+	import { throttle } from '$lib/utils';
 
 	let graph: HTMLDivElement;
 	let changedProperties: Record<string, any> = $state({});
@@ -23,10 +24,23 @@
 			neo4jNetwork.selectedNodeId = params.nodes[0];
 		});
 
-		network.on('doubleClick', (params) => {
-			const nodeId = params.nodes[0];
-			neo4jNetwork.loadAdditionalConnections(nodeId);
+		network.on('deselectNode', () => {
+			neo4jNetwork.selectedNodeId = null;
 		});
+
+		const updateMousePosition = throttle((event) => {
+			const position = network.DOMtoCanvas({ x: event.screenX, y: event.screenY });
+			neo4jNetwork.canvasMousePositionX = position.x;
+			neo4jNetwork.canvasMousePositionY = position.y;
+
+			console.log('updateMousePosition', position);
+		}, 100); // Updates at most every 100ms
+
+		graph.addEventListener('mousemove', updateMousePosition);
+
+		return () => {
+			graph.removeEventListener('mousemove', updateMousePosition);
+		};
 	});
 
 	function handlePropertyChange(key: string, value: any) {
