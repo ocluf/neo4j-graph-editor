@@ -7,7 +7,7 @@
 
 <div class="flex flex-col h-screen">
 	<Header />
-	{#if neo4jNetwork.settings !== ''}
+	{#if settings.settings !== ''}
 		<Editor />
 	{:else}
 		<div class="flex flex-col items-center justify-center h-screen">
