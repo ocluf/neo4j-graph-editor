@@ -478,7 +478,9 @@ type Settings = {
 
 function createSettings() {
 	const storedSettings = localStorage.getItem('settings');
-	const initialSettings = storedSettings ? JSON.parse(storedSettings) : '';
+	const initialSettings = storedSettings
+		? JSON.parse(storedSettings)
+		: { intialCypher: 'MATCH (n)-[r]->(m) RETURN n,r,m' };
 
 	let settings = $state(initialSettings);
 
