@@ -2,9 +2,10 @@ import { DataSet } from 'vis-data';
 import * as neo4j from 'neo4j-driver';
 import { toast } from 'svelte-sonner';
 import { defaultNodeStyle, nodeGroupStyles } from './networkOptions';
+import type { IdType } from 'vis-network';
 
 type Node = {
-	id: number;
+	id: number | string;
 	label: string;
 	labels: string[];
 	properties: Record<string, string>;
@@ -28,7 +29,7 @@ class Neo4jNetwork {
 
 	canvasMousePositionX: number | null = null;
 	canvasMousePositionY: number | null = null;
-	ghostNodeConnectionPosition: { x: number; y: number } | null = null;
+	ghostNodeConnectionPosition: { x: number; y: number; nodeId: IdType } | null = null;
 
 	#currentCypher: string = '';
 	#neo4jDriver!: neo4j.Driver;
@@ -98,6 +99,61 @@ class Neo4jNetwork {
 		} catch (error) {
 			toast.error('Error loading cypher.');
 			console.error('Error loading cypher:', error);
+		}
+	}
+
+	async addNodeToDB(params: {
+		nodeId: IdType;
+		edgeName: string;
+		edgeDirection: 'outgoing' | 'incoming';
+		group: string;
+		nodeName: string;
+	}) {
+		try {
+			const { nodeId, edgeName, edgeDirection, group, nodeName } = params;
+			let query;
+			if (edgeDirection === 'outgoing') {
+				query = `
+					MATCH (existingNode)
+					WHERE id(existingNode) = $nodeId
+					CREATE (existingNode)-[r:${edgeName}]->(newNode:${group} {name: $nodeName})
+					RETURN id(newNode) as newNodeId
+				`;
+			} else if (edgeDirection === 'incoming') {
+				query = `
+					MATCH (existingNode)
+					WHERE id(existingNode) = $nodeId
+					CREATE (newNode:${group} {name: $nodeName})-[r:${edgeName}]->(existingNode)
+					RETURN id(newNode) as newNodeId
+				`;
+			} else {
+				toast.error('Invalid edge direction. Must be "outgoing" or "incoming".');
+				throw new Error('Invalid edge direction. Must be "outgoing" or "incoming".');
+			}
+
+			const result = await this.#neo4jSession.run(query, { nodeId, nodeName });
+			const newNodeId = result.records[0].get('newNodeId').toNumber();
+
+			console.log(`New node created with ID: ${newNodeId}, group: ${group}, and name: ${nodeName}`);
+
+			const cypher = `MATCH (n1)<-[r]->(n2) WHERE ID(n1)=${nodeId} RETURN n1,r,n2`;
+			// Reload the network to reflect the changes
+			await this.loadCypher(cypher);
+
+			return newNodeId;
+		} catch (error) {
+			toast.error('Error adding new node.' + error);
+			console.error('[Neo4jNetworkStore.addNodeToDB] Error adding new node:', error);
+		}
+	}
+
+	async removeNodeFromDB(nodeId: number | string) {
+		try {
+			await this.#neo4jSession.run(`MATCH (n) WHERE id(n) = ${nodeId} DETACH DELETE n`);
+			await this.loadCypher(this.#currentCypher);
+		} catch (error) {
+			console.error('[Neo4jNetworkStore.removeNodeFromDB] Error removing node:', error);
+			throw error;
 		}
 	}
 
@@ -176,7 +232,6 @@ class Neo4jNetwork {
 						ctx.fillText(label, x, y);
 
 						// Draw line from center to ghost node connection position
-
 						if (this.ghostNodeConnectionPosition) {
 							ctx.beginPath();
 							ctx.moveTo(x, y);
@@ -186,8 +241,11 @@ class Neo4jNetwork {
 							const length = Math.sqrt(dx * dx + dy * dy);
 							const unitX = dx / length;
 							const unitY = dy / length;
-							const endX = x + (length - nodeRadius) * unitX;
-							const endY = y + (length - nodeRadius) * unitY;
+							const startX = x + nodeRadius * unitX;
+							const startY = y + nodeRadius * unitY;
+							const endX = this.ghostNodeConnectionPosition.x - nodeRadius * unitX;
+							const endY = this.ghostNodeConnectionPosition.y - nodeRadius * unitY;
+							ctx.moveTo(startX, startY);
 							ctx.lineTo(endX, endY);
 							ctx.strokeStyle = 'rgba(150, 150, 150, 0.8)';
 							ctx.lineWidth = 2;
@@ -238,9 +296,9 @@ class Neo4jNetwork {
 					// Draw outer circle (donut)
 					ctx.beginPath();
 					ctx.arc(x, y, this.hoverRadius, 0, 2 * Math.PI);
-					ctx.fillStyle = 'rgba(0, 0, 0, 1)'; // Semi-transparent black
+					ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; // Transparent gray
 					ctx.fill();
-					ctx.strokeStyle = 'rgba(0, 0, 0, 1)'; // Semi-transparent black border
+					ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)'; // Transparent gray border
 					ctx.lineWidth = 1;
 					ctx.stroke();
 				}

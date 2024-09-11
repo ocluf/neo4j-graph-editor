@@ -62,14 +62,20 @@
 				});
 				neo4jNetwork.ghostNodeConnectionPosition = {
 					x: nodePosition.x,
-					y: nodePosition.y
+					y: nodePosition.y,
+					nodeId: nodeAtDragStart
 				};
 				neo4jNetwork.addGhostNode();
 			}
 		});
 
 		network.on('dragEnd', (params) => {
+			if (!neo4jNetwork.ghostNodeConnectionPosition) {
+				return;
+			}
+			const connectionNodeId = neo4jNetwork.ghostNodeConnectionPosition.nodeId;
 			neo4jNetwork.removeGhostNode();
+
 			neo4jNetwork.ghostNodeConnectionPosition = null;
 			network.setOptions({
 				physics: {
@@ -79,6 +85,13 @@
 					dragNodes: true,
 					dragView: true
 				}
+			});
+			neo4jNetwork.addNodeToDB({
+				nodeId: connectionNodeId,
+				edgeName: 'TEST',
+				edgeDirection: 'outgoing',
+				group: 'Person',
+				nodeName: 'New Person'
 			});
 		});
 		network.on('doubleClick', (params) => {
@@ -125,6 +138,16 @@
 
 <div class="relative flex-grow">
 	{#if selectedNode}
+		<div class="absolute z-50 top-5 left-5">
+			<Button
+				variant="destructive"
+				onclick={() => {
+					neo4jNetwork.removeNodeFromDB(selectedNode.id);
+					neo4jNetwork.selectedNodeId = null;
+				}}
+				class="ml-auto">delete</Button
+			>
+		</div>
 		<div class="absolute z-50 top-5 right-5 w-[275px]">
 			<Card.Root>
 				<Card.Header>
