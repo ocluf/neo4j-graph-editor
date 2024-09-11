@@ -5,6 +5,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { settings } from '$lib/stores.svelte';
 	import * as neo4j from 'neo4j-driver';
+	import { toast } from 'svelte-sonner';
 
 	let newSettings = $state({
 		server: settings.settings.server,
@@ -14,7 +15,6 @@
 	});
 
 	let open = $state(false);
-	let errorMsg: null | string = $state(null);
 
 	async function validateAndSaveSettings() {
 		try {
@@ -27,7 +27,7 @@
 			settings.settings = newSettings;
 			open = false;
 		} catch (e) {
-			errorMsg = 'failed to connect to database with given credentials';
+			toast.error('Failed to connect to database with given credentials: ' + e);
 			console.error(e);
 		}
 	}

@@ -8,12 +8,17 @@
 	import Button from './ui/button/button.svelte';
 	import { getOptions } from '$lib/networkOptions';
 	import { throttle } from '$lib/utils';
+	import CreateNodeDialog from './CreateNodeDialog.svelte';
 	let graph: HTMLDivElement;
 	let changedProperties: Record<string, any> = $state({});
 	let selectedNode = $derived(
 		neo4jNetwork.selectedNodeId && neo4jNetwork.nodes.get(neo4jNetwork.selectedNodeId)
 	);
 	let network: Network;
+
+	let nodeCreateDialogOpen = $state(false);
+	let nodeCreateDialogConnectionNodeId = $state('');
+	let onClose = $state(() => (nodeCreateDialogOpen = false));
 
 	$effect(() => {
 		const data = { nodes: neo4jNetwork.nodes, edges: neo4jNetwork.edges };
@@ -76,7 +81,6 @@
 			const connectionNodeId = neo4jNetwork.ghostNodeConnectionPosition.nodeId;
 			neo4jNetwork.removeGhostNode();
 
-			neo4jNetwork.ghostNodeConnectionPosition = null;
 			network.setOptions({
 				physics: {
 					enabled: true
@@ -86,13 +90,15 @@
 					dragView: true
 				}
 			});
-			neo4jNetwork.addNodeToDB({
-				nodeId: connectionNodeId,
-				edgeName: 'TEST',
-				edgeDirection: 'outgoing',
-				group: 'Person',
-				nodeName: 'New Person'
-			});
+			nodeCreateDialogConnectionNodeId = connectionNodeId;
+			nodeCreateDialogOpen = true;
+			// neo4jNetwork.addNodeToDB({
+			// 	nodeId: connectionNodeId,
+			// 	edgeName: 'TEST',
+			// 	edgeDirection: 'outgoing',
+			// 	group: 'Person',
+			// 	nodeName: 'New Person'
+			// });
 		});
 		network.on('doubleClick', (params) => {
 			if (neo4jNetwork.selectedNodeId) {
@@ -185,3 +191,9 @@
 	{/if}
 	<div class="w-full h-full" bind:this={graph}></div>
 </div>
+
+<CreateNodeDialog
+	open={nodeCreateDialogOpen}
+	connectionNodeId={nodeCreateDialogConnectionNodeId}
+	{onClose}
+/>

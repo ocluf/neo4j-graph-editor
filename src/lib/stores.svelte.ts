@@ -11,6 +11,17 @@ type Node = {
 	properties: Record<string, string>;
 	level: number;
 	group: string;
+	ctxRenderer: (params: {
+		ctx: CanvasRenderingContext2D;
+		x: number;
+		y: number;
+		style: Record<string, any>;
+		label: string;
+		state: { hover: boolean; selected: boolean };
+	}) => {
+		drawNode: () => void;
+		nodeDimensions: { width: number; height: number };
+	};
 };
 
 type Edge = {
@@ -35,14 +46,14 @@ class Neo4jNetwork {
 	#neo4jDriver!: neo4j.Driver;
 	#neo4jSession!: neo4j.Session;
 
-	visibleRadius: number = 50; // Radius of the visible circle
+	#visibleRadius: number = 50; // Radius of the visible circle
 	hoverRadius: number = 60; // Radius of the hidden hover circle
 
 	constructor(serverSettings: Settings) {
 		this.nodes = new DataSet([]);
 		this.edges = new DataSet([]);
 		this.initialize(serverSettings);
-		this.handleDataSetEvent = this.handleDataSetEvent.bind(this);
+
 		// An ugly hack where the nodes get updated with there exising label every 50ms.
 		// This is necessary to trigger ctxRenderer so it can recalculate the hover ring state.
 		// TODO: if performance is an issue, you could update this to track the node that is currently being hovered.
@@ -53,8 +64,6 @@ class Neo4jNetwork {
 	async initialize(serverSettings: Settings) {
 		await this.connect(serverSettings);
 		await this.loadCypher(serverSettings.initialCypher);
-		this.nodes.on('*', this.handleDataSetEvent);
-		this.edges.on('*', this.handleDataSetEvent);
 	}
 
 	async connect(serverSettings: Settings) {
@@ -85,21 +94,85 @@ class Neo4jNetwork {
 		}
 	}
 
-	async loadCypher(cypher: string, clear = true) {
+	async loadCypher(cypher: string, clear = false) {
 		try {
-			if (clear) {
-				// clear the current network before loading a new one.
-				this.#clear();
-			}
 			const result = await this.#neo4jSession.run(cypher);
-			result.records.forEach((records) => {
-				this.#parseNeo4jRecords(records);
+
+			const newNodes = new Set<number>();
+			const newEdges = new Set<number>();
+			const nodesToUpdate: Node[] = [];
+			const edgesToUpdate: Edge[] = [];
+
+			result.records.forEach((record) => {
+				record.forEach((field) => {
+					if (field instanceof neo4j.types.Node) {
+						const node = this.#parseNeo4jNode(field);
+						newNodes.add(node.id as number);
+						nodesToUpdate.push(node);
+					} else if (field instanceof neo4j.types.Relationship) {
+						const edge = this.#parseNeo4jRelationship(field);
+						newEdges.add(edge.id);
+						edgesToUpdate.push(edge);
+					}
+				});
 			});
+
+			// Remove nodes and edges that are no longer in the new set
+			this.nodes.forEach((node) => {
+				if (!newNodes.has(node.id as number)) {
+					this.nodes.remove(node.id);
+				}
+			});
+			this.edges.forEach((edge) => {
+				if (!newEdges.has(edge.id)) {
+					this.edges.remove(edge.id);
+				}
+			});
+
+			// Update existing nodes and edges, and add new ones
+			this.nodes.update(nodesToUpdate);
+			this.edges.update(edgesToUpdate);
+
 			this.#currentCypher = cypher;
 		} catch (error) {
 			toast.error('Error loading cypher.');
 			console.error('Error loading cypher:', error);
 		}
+	}
+
+	#parseNeo4jNode(neoNode: neo4j.Node): Node {
+		const id = neoNode.identity.toInt();
+		const labels = neoNode.labels;
+		const properties = neoNode.properties;
+		const label = properties.text || properties.name || properties.title;
+		const level = this.#getLevelByLabels(labels);
+		const group = labels[0] ? labels[0].toLowerCase() : '';
+
+		return {
+			id,
+			label,
+			labels,
+			properties,
+			level,
+			group,
+			ctxRenderer: this.ctxRenderer
+		};
+	}
+
+	#parseNeo4jRelationship(neoRelationship: neo4j.Relationship): Edge {
+		const id = neoRelationship.identity.toInt();
+		const from = neoRelationship.start.toInt();
+		const to = neoRelationship.end.toInt();
+		const type = neoRelationship.type;
+		const label = type || '';
+
+		return {
+			id,
+			label,
+			from,
+			to,
+			type
+		};
 	}
 
 	async addNodeToDB(params: {
@@ -186,7 +259,7 @@ class Neo4jNetwork {
 			const distanceSquared = dx * dx + dy * dy;
 			return (
 				distanceSquared <= this.hoverRadius * this.hoverRadius &&
-				distanceSquared > this.visibleRadius * this.visibleRadius
+				distanceSquared > this.#visibleRadius * this.#visibleRadius
 			);
 		}
 		return false;
@@ -267,6 +340,7 @@ class Neo4jNetwork {
 	removeGhostNode() {
 		// Remove the ghost node from the nodes DataSet
 		this.nodes.remove('ghost');
+		neo4jNetwork.ghostNodeConnectionPosition = null;
 	}
 
 	ctxRenderer = ({
@@ -305,7 +379,7 @@ class Neo4jNetwork {
 
 				// Draw visible circle
 				ctx.beginPath();
-				ctx.arc(x, y, this.visibleRadius, 0, 2 * Math.PI);
+				ctx.arc(x, y, this.#visibleRadius, 0, 2 * Math.PI);
 				ctx.fillStyle = style.color;
 				ctx.fill();
 				ctx.strokeStyle = style.color.border;
@@ -330,9 +404,6 @@ class Neo4jNetwork {
 	async updateNodeProperty(id, updates) {
 		try {
 			// Update the node in the Neo4j database
-			console.log(
-				`[Neo4jNetworkStore.updateNodeProperty] Updating node ${id} with properties: ${JSON.stringify(updates)}`
-			);
 
 			let query = `MATCH (x) WHERE id(x) = ${id}`;
 			for (const update of updates) {
@@ -355,59 +426,6 @@ class Neo4jNetwork {
 		await this.loadCypher(cypher);
 	}
 
-	#clear() {
-		this.nodes.clear();
-		this.edges.clear();
-	}
-
-	#parseNeo4jRecords(records: neo4j.Record[]) {
-		const nodesToUpdate: Node[] = [];
-		const edgesToUpdate: Edge[] = [];
-
-		records.forEach((record) => {
-			if (record instanceof neo4j.types.Node) {
-				const id = record.identity.toInt();
-				const labels = record.labels;
-				const properties = record.properties;
-				const label = properties.text || properties.name || properties.title;
-				const level = this.#getLevelByLabels(labels);
-				const group = labels[0] ? labels[0].toLowerCase() : null;
-
-				const node = {
-					id,
-					label,
-					labels,
-					properties,
-					level,
-					group,
-					ctxRenderer: this.ctxRenderer
-				};
-
-				nodesToUpdate.push(node);
-			} else if (record instanceof neo4j.types.Relationship) {
-				const id = record.identity.toInt();
-				const from = record.start.toInt();
-				const to = record.end.toInt();
-				const type = record.type;
-				const label = type || '';
-				edgesToUpdate.push({
-					id,
-					label,
-					from,
-					to,
-					type
-				});
-			}
-		});
-
-		if (nodesToUpdate.length > 0) {
-			this.nodes.update(nodesToUpdate);
-		}
-		if (edgesToUpdate.length > 0) {
-			this.edges.update(edgesToUpdate);
-		}
-	}
-
 	/**
 	 * Helper function that returns a vis-hierarchy-level
 	 * based on the provides labels.
@@ -420,21 +438,6 @@ class Neo4jNetwork {
 		const label = labels[0]?.toLowerCase();
 		console.log(label);
 		return nodeGroupStyles[label]?.level || defaultNodeStyle?.level || 0;
-	}
-
-	/**
-	 * This function is called every time a internat vis-DataSet fires an event.
-	 *
-	 * @see https://visjs.github.io/vis-data/data/dataset.html#Callback
-	 * @param {String} event
-	 * @param {Object | null} properties
-	 * @param {String | Number} senderId
-	 */
-	handleDataSetEvent(event, properties, senderId) {
-		if (this.selectedNode) {
-			const currentNodeId = this.selectedNode.id;
-			this.selectedNode = this.nodes.get(currentNodeId);
-		}
 	}
 }
 
