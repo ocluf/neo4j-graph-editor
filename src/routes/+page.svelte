@@ -7,7 +7,7 @@
 
 <div class="flex flex-col h-screen">
 	<Header />
-	{#if settings.settings.password && settings.settings.user && settings.settings.server && !settings.settings.initialCypher}
+	{#if settings.settings.password && settings.settings.user && settings.settings.server && settings.settings.initialCypher}
 		<Editor />
 	{:else}
 		<div class="flex flex-col items-center justify-center h-screen">
