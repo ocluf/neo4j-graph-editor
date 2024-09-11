@@ -69,17 +69,28 @@ class Neo4jNetwork {
 	}
 
 	async isServerSettingsValid(settings: Settings) {
+		console.log('Step 1: Starting server settings validation');
 		try {
+			console.log('Step 2: Creating Neo4j driver');
 			const driver = neo4j.driver(
 				settings.server,
 				neo4j.auth.basic(settings.user, settings.password)
 			);
+			console.log('Step 3: Attempting to get server info');
 			await driver.getServerInfo();
+			console.log('Step 4: Server info retrieved successfully');
+			console.log('Step 5: Closing driver connection');
 			await driver.close();
+			console.log('Step 6: Driver connection closed');
+			console.log('Step 7: Validation successful, returning true');
 			return true;
 		} catch (e) {
+			console.log('Step 8: Error caught during validation');
+			console.log('Step 9: Displaying error toast');
 			toast.error('Failed to connect to database with given credentials: ' + e);
+			console.log('Step 10: Logging error to console');
 			console.error(e);
+			console.log('Step 11: Validation failed, returning false');
 			return false;
 		}
 	}
