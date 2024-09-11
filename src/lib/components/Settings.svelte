@@ -3,7 +3,7 @@
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { settings } from '$lib/stores.svelte';
+	import { neo4jNetwork, settings } from '$lib/stores.svelte';
 	import * as neo4j from 'neo4j-driver';
 	import { toast } from 'svelte-sonner';
 
@@ -26,6 +26,7 @@
 			await driver.close();
 			settings.settings = newSettings;
 			open = false;
+			neo4jNetwork.initialize(settings.settings);
 		} catch (e) {
 			toast.error('Failed to connect to database with given credentials: ' + e);
 			console.error(e);

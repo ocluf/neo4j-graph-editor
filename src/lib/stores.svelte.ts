@@ -50,10 +50,17 @@ class Neo4jNetwork {
 	hoverRadius: number = 60; // Radius of the hidden hover circle
 
 	constructor(serverSettings: Settings) {
+		this.initialize(serverSettings);
+	}
+
+	async initialize(serverSettings: Settings) {
+		if (!(await this.isServerSettingsValid(serverSettings))) {
+			return;
+		}
 		this.nodes = new DataSet([]);
 		this.edges = new DataSet([]);
-		this.initialize(serverSettings);
-
+		await this.connect(serverSettings);
+		await this.loadCypher(serverSettings.initialCypher);
 		// An ugly hack where the nodes get updated with there exising label every 50ms.
 		// This is necessary to trigger ctxRenderer so it can recalculate the hover ring state.
 		// TODO: if performance is an issue, you could update this to track the node that is currently being hovered.
@@ -61,9 +68,20 @@ class Neo4jNetwork {
 		this.#nodeRenderLoop();
 	}
 
-	async initialize(serverSettings: Settings) {
-		await this.connect(serverSettings);
-		await this.loadCypher(serverSettings.initialCypher);
+	async isServerSettingsValid(settings: Settings) {
+		try {
+			const driver = neo4j.driver(
+				settings.server,
+				neo4j.auth.basic(settings.user, settings.password)
+			);
+			await driver.getServerInfo();
+			await driver.close();
+			return true;
+		} catch (e) {
+			toast.error('Failed to connect to database with given credentials: ' + e);
+			console.error(e);
+			return false;
+		}
 	}
 
 	async connect(serverSettings: Settings) {
