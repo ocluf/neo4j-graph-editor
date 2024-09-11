@@ -75,11 +75,19 @@
 		});
 
 		network.on('dragEnd', (params) => {
+			console.log('dragEnd event triggered', params);
+
 			if (!neo4jNetwork.ghostNodeConnectionPosition) {
+				console.log('No ghost node connection position');
 				return;
 			}
+			console.log('Ghost node connection position:', neo4jNetwork.ghostNodeConnectionPosition);
+
 			const connectionNodeId = neo4jNetwork.ghostNodeConnectionPosition.nodeId;
+			console.log('Connection node ID:', connectionNodeId);
+
 			neo4jNetwork.removeGhostNode();
+			console.log('Ghost node removed');
 
 			network.setOptions({
 				physics: {
@@ -90,15 +98,13 @@
 					dragView: true
 				}
 			});
+			console.log('Network options reset');
+
 			nodeCreateDialogConnectionNodeId = connectionNodeId;
+			console.log('nodeCreateDialogConnectionNodeId set to:', nodeCreateDialogConnectionNodeId);
+
 			nodeCreateDialogOpen = true;
-			// neo4jNetwork.addNodeToDB({
-			// 	nodeId: connectionNodeId,
-			// 	edgeName: 'TEST',
-			// 	edgeDirection: 'outgoing',
-			// 	group: 'Person',
-			// 	nodeName: 'New Person'
-			// });
+			console.log('nodeCreateDialogOpen set to true');
 		});
 		network.on('doubleClick', (params) => {
 			if (neo4jNetwork.selectedNodeId) {

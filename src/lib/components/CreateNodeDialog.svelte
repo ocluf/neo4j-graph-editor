@@ -8,14 +8,14 @@
 	import { neo4jNetwork } from '$lib/stores.svelte';
 
 	let {
-		open,
+		open = $bindable(),
 		connectionNodeId,
 		onClose
 	}: { open: boolean; connectionNodeId: string; onClose: () => void } = $props();
 
 	let direction: 'incoming' | 'outgoing' = $state('outgoing');
-	let selectedLabel = $state('');
-	let nodeName = $state('');
+	let selectedLabel = $state('MENU');
+	let nodeName = $state('name');
 	let edgeName = $state('CMD');
 
 	const labels = ['MENU', 'PERSON']; // Add more labels as needed
