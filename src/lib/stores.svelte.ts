@@ -49,10 +49,6 @@ class Neo4jNetwork {
 	#visibleRadius: number = 50; // Radius of the visible circle
 	hoverRadius: number = 60; // Radius of the hidden hover circle
 
-	constructor(serverSettings: Settings) {
-		this.initialize(serverSettings);
-	}
-
 	async initialize(serverSettings: Settings) {
 		if (!(await this.isServerSettingsValid(serverSettings))) {
 			return;
@@ -498,5 +494,5 @@ function createSettings() {
 	};
 }
 
+export const neo4jNetwork = new Neo4jNetwork();
 export const settings = createSettings();
-export const neo4jNetwork = new Neo4jNetwork(settings.settings);
