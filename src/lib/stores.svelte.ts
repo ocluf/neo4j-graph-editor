@@ -49,12 +49,15 @@ class Neo4jNetwork {
 	#visibleRadius: number = 50; // Radius of the visible circle
 	hoverRadius: number = 60; // Radius of the hidden hover circle
 
+	constructor() {
+		this.nodes = new DataSet([]);
+		this.edges = new DataSet([]);
+	}
+
 	async initialize(serverSettings: Settings) {
 		if (!(await this.isServerSettingsValid(serverSettings))) {
 			return;
 		}
-		this.nodes = new DataSet([]);
-		this.edges = new DataSet([]);
 		await this.connect(serverSettings);
 		await this.loadCypher(serverSettings.initialCypher);
 		// An ugly hack where the nodes get updated with there exising label every 50ms.
@@ -122,7 +125,7 @@ class Neo4jNetwork {
 		}
 	}
 
-	async loadCypher(cypher: string, clear = false) {
+	async loadCypher(cypher: string) {
 		try {
 			const result = await this.#neo4jSession.run(cypher);
 
@@ -464,7 +467,6 @@ class Neo4jNetwork {
 	 */
 	#getLevelByLabels(labels: string[]): number {
 		const label = labels[0]?.toLowerCase();
-		console.log(label);
 		return nodeGroupStyles[label]?.level || defaultNodeStyle?.level || 0;
 	}
 }
@@ -480,7 +482,9 @@ function createSettings() {
 	const storedSettings = localStorage.getItem('settings');
 	const initialSettings = storedSettings
 		? JSON.parse(storedSettings)
-		: { intialCypher: 'MATCH (n)-[r]->(m) RETURN n,r,m' };
+		: {
+				initialCypher: 'MATCH (nFocus)<-[r]->(n) WHERE nFocus.name = "ROOT" RETURN nFocus,r,n'
+			};
 
 	let settings = $state(initialSettings);
 

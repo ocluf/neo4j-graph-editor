@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Network } from 'vis-network';
-	import { neo4jNetwork } from '$lib/stores.svelte';
+	import { neo4jNetwork, settings } from '$lib/stores.svelte';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from './ui/badge';
 	import { Label } from './ui/label';
@@ -125,6 +125,7 @@
 		}, 25);
 
 		graph.addEventListener('mousemove', updateMousePosition);
+		neo4jNetwork.initialize(settings.settings);
 
 		return () => {
 			graph.removeEventListener('mousemove', updateMousePosition);

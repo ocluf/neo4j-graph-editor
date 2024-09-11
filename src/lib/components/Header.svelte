@@ -1,4 +1,5 @@
 <script>
+	import { neo4jNetwork, settings } from '$lib/stores.svelte';
 	import Settings from './Settings.svelte';
 </script>
 
