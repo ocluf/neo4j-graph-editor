@@ -69,7 +69,10 @@ class Neo4jNetwork {
 	}
 
 	async isServerSettingsValid(settings: Settings) {
-		console.log('Step 1: Starting server settings validation');
+		if (!settings || !settings.server || !settings.user || !settings.password) {
+			toast.error('Please enter valid server settings.');
+			return false;
+		}
 		try {
 			console.log('Step 2: Creating Neo4j driver');
 			const driver = neo4j.driver(
