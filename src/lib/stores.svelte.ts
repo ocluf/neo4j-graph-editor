@@ -125,6 +125,16 @@ class Neo4jNetwork {
 		}
 	}
 
+	async runCypher(cypher: string) {
+		try {
+			const result = await this.#neo4jSession.run(cypher);
+			return result;
+		} catch (error) {
+			toast.error('Error running Cypher query.');
+			console.error('Error running Cypher query:', error);
+		}
+	}
+
 	async loadCypher(cypher: string) {
 		try {
 			const result = await this.#neo4jSession.run(cypher);

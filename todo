@@ -1,5 +1,5 @@
-- Bar on top to handwrite query
-- ability to delete node
-- ability to add new node
-- show nodes that are attached when clicking but remove them when clicking another node
-- add group to Node  
+- Property toevoegen
+- Property verwijderen
+- Edge selecteren
+- Cypher invoeren
+- Aantekeningen maken in de code die de functie doen

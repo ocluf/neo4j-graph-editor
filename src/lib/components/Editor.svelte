@@ -9,6 +9,8 @@
 	import { getOptions } from '$lib/networkOptions';
 	import { throttle } from '$lib/utils';
 	import CreateNodeDialog from './CreateNodeDialog.svelte';
+	import Cypher from './Cypher.svelte';
+	import { dev } from '$app/environment';
 	let graph: HTMLDivElement;
 	let changedProperties: Record<string, any> = $state({});
 	let selectedNode = $derived(
@@ -150,17 +152,13 @@
 </script>
 
 <div class="relative flex-grow">
-	{#if selectedNode}
-		<div class="absolute z-50 top-5 left-5">
-			<Button
-				variant="destructive"
-				onclick={() => {
-					neo4jNetwork.removeNodeFromDB(selectedNode.id);
-					neo4jNetwork.selectedNodeId = null;
-				}}
-				class="ml-auto">delete</Button
-			>
+	{#if dev}
+		<div class="absolute z-50 top-2 left-2">
+			<Cypher />
+			<p class="text-xs text-gray-500 ml-2">only visible in dev mode</p>
 		</div>
+	{/if}
+	{#if selectedNode}
 		<div class="absolute z-50 top-5 right-5 w-[275px]">
 			<Card.Root>
 				<Card.Header>
@@ -183,7 +181,14 @@
 							</div>
 						{/each}
 					</div>
-					<div class="flex mt-5">
+					<div class="flex w-full justify-between mt-5">
+						<Button
+							variant="destructive"
+							onclick={() => {
+								neo4jNetwork.removeNodeFromDB(selectedNode.id);
+								neo4jNetwork.selectedNodeId = null;
+							}}>delete</Button
+						>
 						<Button
 							disabled={Object.keys(changedProperties).length === 0}
 							onclick={saveChanges}
