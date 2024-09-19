@@ -523,26 +523,34 @@ class Neo4jNetwork {
 	};
 
 	/**
-	 * Updates a property of a node in the network and the Neo4j database.
-	 * @param {Number} id - The id of the node to update
-	 * @param {any[]} updates - An array of updates to apply to the node
+	 * Updates, adds, or deletes properties of a node in the network and the Neo4j database.
+	 * @param {number} id - The id of the node to update
+	 * @param {Array<{key: string, value: any}>} updates - An array of updates to apply to the node
 	 */
-	async updateNodeProperty(id, updates) {
+	async updateNodeProperty(id: number, updates: Array<{ key: string; value: any }>) {
 		try {
-			// Update the node in the Neo4j database
+			let setClause = '';
+			let removeClause = '';
+			const params: Record<string, any> = {};
+
+			updates.forEach(({ key, value }, index) => {
+				if (value === null) {
+					removeClause += `${removeClause ? ',' : ''} x.${key}`;
+				} else {
+					const paramKey = `param${index}`;
+					setClause += `${setClause ? ',' : ''} x.${key} = $${paramKey}`;
+					params[paramKey] = value;
+				}
+			});
 
 			let query = `MATCH (x) WHERE id(x) = ${id}`;
-			for (const update of updates) {
-				query += ` SET x.${update.key} = $${update.key}`;
-			}
-			const params = updates.reduce((acc, update) => {
-				acc[update.key] = update.value;
-				return acc;
-			}, {});
+			if (setClause) query += ` SET ${setClause}`;
+			if (removeClause) query += ` REMOVE ${removeClause}`;
 
 			await this.#neo4jSession.run(query, params);
-			await this.loadCypher(this.#currentCypher, false);
+			await this.loadCypher(this.#currentCypher);
 		} catch (error) {
+			toast.error(`Error updating properties for node ${id}: ${error}`);
 			console.error(`[Neo4jNetworkStore.updateNodeProperty] Error updating node ${id}:`, error);
 		}
 	}

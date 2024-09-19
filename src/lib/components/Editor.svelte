@@ -56,9 +56,22 @@
 	);
 	let network: Network;
 
-	let nodeCreateDialogOpen = $state(false);
+	let open = $state(false);
 	let nodeCreateDialogConnectionNodeId = $state('');
-	let onClose = $state(() => (nodeCreateDialogOpen = false));
+	let onClose = $state(() => (open = false));
+
+	let newPropertyKey = $state('');
+	let newPropertyValue = $state('');
+	let showAddProperty = $state(false);
+
+	let hasChanges = $derived(Object.keys(changedProperties).length > 0);
+
+	$effect(() => {
+		// Reset changes when selecting a different node or edge, or deselecting
+		if (neo4jNetwork.selectedNodeId !== null || neo4jNetwork.selectedEdgeId !== null) {
+			cancelChanges();
+		}
+	});
 
 	$effect(() => {
 		const data = { nodes: neo4jNetwork.nodes, edges: neo4jNetwork.edges };
@@ -151,7 +164,7 @@
 			nodeCreateDialogConnectionNodeId = connectionNodeId;
 			console.log('nodeCreateDialogConnectionNodeId set to:', nodeCreateDialogConnectionNodeId);
 
-			nodeCreateDialogOpen = true;
+			open = true;
 			console.log('nodeCreateDialogOpen set to true');
 		});
 		network.on('doubleClick', (params) => {
@@ -181,8 +194,39 @@
 	});
 
 	function handlePropertyChange(key: string, value: any) {
-		console.log('handlePropertyChange', key, value);
 		changedProperties[key] = value;
+	}
+
+	function deleteProperty(key: string) {
+		changedProperties[key] = null; // Mark for deletion
+	}
+
+	function toggleAddProperty() {
+		showAddProperty = !showAddProperty;
+		if (!showAddProperty) {
+			newPropertyKey = '';
+			newPropertyValue = '';
+		}
+	}
+
+	function addProperty() {
+		if (newPropertyKey && newPropertyValue) {
+			changedProperties[newPropertyKey] = newPropertyValue;
+			newPropertyKey = '';
+			newPropertyValue = '';
+			showAddProperty = false;
+		}
+	}
+
+	function isPropertyDeleted(key: string) {
+		return changedProperties[key] === null;
+	}
+
+	function cancelChanges() {
+		changedProperties = {};
+		showAddProperty = false;
+		newPropertyKey = '';
+		newPropertyValue = '';
 	}
 
 	async function saveChanges() {
@@ -235,34 +279,129 @@
 				</Card.Header>
 				<Card.Content>
 					<div class="grid gap-4 py-4">
-						{#each Object.entries(selectedNode.properties) as [key, value]}
-							<div class="grid grid-cols-1 items-center gap-2">
-								<Label for={key} class="mb-1">{key}</Label>
-								<Input
-									id={key}
-									value={changedProperties[key] !== undefined ? changedProperties[key] : value}
-									oninput={(e) => handlePropertyChange(key, e.currentTarget.value)}
-									class="w-full"
-								/>
-							</div>
+						{#each Object.entries( { ...selectedNode.properties, ...changedProperties } ) as [key, value]}
+							{#if !isPropertyDeleted(key)}
+								<div class="grid grid-cols-1 items-center gap-2">
+									<div class="flex justify-between items-center">
+										<Label for={key} class="mb-1">{key}</Label>
+										<Button
+											variant="ghost"
+											size="icon"
+											onclick={() => deleteProperty(key)}
+											class="h-6 w-6 text-red-500 hover:text-red-700"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											>
+												<path d="M3 6h18" />
+												<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+												<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+											</svg>
+										</Button>
+									</div>
+									<Input
+										id={key}
+										value={changedProperties[key] !== undefined ? changedProperties[key] : value}
+										oninput={(e) => handlePropertyChange(key, e.currentTarget.value)}
+										class="w-full"
+									/>
+								</div>
+							{/if}
 						{/each}
+						<div class="grid grid-cols-1 items-center">
+							<Button
+								onclick={toggleAddProperty}
+								class="flex items-center justify-center"
+								variant="outline"
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									class="mr-2"
+								>
+									{#if showAddProperty}
+										<path d="M18 6L6 18" />
+										<path d="M6 6l12 12" />
+									{:else}
+										<path d="M12 5v14M5 12h14" />
+									{/if}
+								</svg>
+								{showAddProperty ? 'Cancel' : 'Add Property'}
+							</Button>
+							{#if showAddProperty}
+								<div class="flex gap-2 mt-2">
+									<Input
+										id="newPropertyKey"
+										placeholder="Key"
+										bind:value={newPropertyKey}
+										class="w-1/2"
+									/>
+									<Input
+										id="newPropertyValue"
+										placeholder="Value"
+										bind:value={newPropertyValue}
+										class="w-1/2"
+									/>
+								</div>
+								<Button onclick={addProperty} class="mt-2">Add</Button>
+							{/if}
+						</div>
 					</div>
-					<div class="flex w-full justify-between mt-5">
-						<Button
-							variant="destructive"
-							onclick={() => {
-								neo4jNetwork.removeNodeFromDB(selectedNode.id);
-								neo4jNetwork.selectedNodeId = null;
-							}}>delete</Button
-						>
-						<Button
-							disabled={Object.keys(changedProperties).length === 0}
-							onclick={saveChanges}
-							class="ml-auto"
-						>
-							Save changes
-						</Button>
+					<div class="flex w-full justify-between">
+						{#if hasChanges}
+							<div class="flex justify-between gap-2 w-full">
+								<Button variant="secondary" onclick={cancelChanges}>Cancel</Button>
+								<Button onclick={saveChanges}>Save changes</Button>
+							</div>
+						{/if}
 					</div>
+					{#if selectedNode}
+						<div class="mt-4">
+							<Button
+								variant="outline"
+								class="text-red-500 hover:text-red-700 w-full flex items-center justify-center"
+								onclick={() => {
+									if (confirm('Are you sure you want to delete this node?')) {
+										neo4jNetwork.removeNodeFromDB(selectedNode.id);
+										neo4jNetwork.selectedNodeId = null;
+									}
+								}}
+							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									class="mr-2"
+								>
+									<path d="M3 6h18" />
+									<path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+									<path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+								</svg>
+								Delete Node
+							</Button>
+						</div>
+					{/if}
 				</Card.Content>
 			</Card.Root>
 		</div>
@@ -270,8 +409,4 @@
 	<div class="w-full h-full" bind:this={graph}></div>
 </div>
 
-<CreateNodeDialog
-	open={nodeCreateDialogOpen}
-	connectionNodeId={nodeCreateDialogConnectionNodeId}
-	{onClose}
-/>
+<CreateNodeDialog bind:open connectionNodeId={nodeCreateDialogConnectionNodeId} {onClose} />
