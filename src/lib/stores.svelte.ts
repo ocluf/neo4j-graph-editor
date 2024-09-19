@@ -282,20 +282,23 @@ class Neo4jNetwork {
 				query = `
 					MATCH (existingNode)
 					WHERE id(existingNode) = $nodeId
-					CREATE (existingNode)-[r:${edgeName}]->(newNode:${group} {name: $nodeName})
+					CREATE (existingNode)-[r:${edgeName}]->(newNode:${group}{name: $nodeName})
 					RETURN id(newNode) as newNodeId
 				`;
 			} else if (edgeDirection === 'incoming') {
 				query = `
 					MATCH (existingNode)
 					WHERE id(existingNode) = $nodeId
-					CREATE (newNode:${group} {name: $nodeName})-[r:${edgeName}]->(existingNode)
+					CREATE (newNode:${group}{name: $nodeName})-[r:${edgeName}]->(existingNode)
 					RETURN id(newNode) as newNodeId
 				`;
 			} else {
 				toast.error('Invalid edge direction. Must be "outgoing" or "incoming".');
 				throw new Error('Invalid edge direction. Must be "outgoing" or "incoming".');
 			}
+
+			console.log('query', query);
+			console.log('params', { nodeId, nodeName });
 
 			const result = await this.#neo4jSession.run(query, { nodeId, nodeName });
 			const newNodeId = result.records[0].get('newNodeId').toNumber();

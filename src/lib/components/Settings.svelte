@@ -1,3 +1,26 @@
+<!--
+  @component
+
+  The Settings component provides a dialog for configuring Neo4j database connection settings and initial Cypher query. It allows users to:
+
+  - Set the Neo4j server URL
+  - Enter database username and password
+  - Specify an initial Cypher query to run on connection
+  - Validate and save the settings
+
+  The component uses the settings store to manage and persist the configuration.
+
+
+  State:
+  - newSettings: Temporary object to hold edited settings
+  - open: Controls visibility of the settings dialog
+
+  Dependencies:
+  - neo4jNetwork and settings stores for data management
+  - neo4j-driver for database connection validation
+  - svelte-sonner for toast notifications
+  - Various UI components from $lib/components/ui
+-->
 <script lang="ts">
 	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';

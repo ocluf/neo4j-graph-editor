@@ -1,3 +1,34 @@
+<!--
+  @component CreateNodeDialog
+
+  This component renders a dialog for creating a new node in a graph database.
+
+  Props:
+  - open: boolean - Controls the visibility of the dialog
+  - connectionNodeId: string - ID of the node to which the new node will be connected
+  - onClose: () => void - Function to call when the dialog is closed
+
+  State:
+  - direction: 'incoming' | 'outgoing' - Direction of the edge connecting the new node
+  - selectedLabel: string - Label/type of the new node
+  - nodeName: string - Name of the new node
+  - edgeName: string - Name of the edge connecting the new node
+
+  Features:
+  - Allows selection of node direction (incoming/outgoing)
+  - Provides a dropdown to select node label/type
+  - Input fields for node name and edge name
+  - Saves the new node to the database on form submission
+  - Resets form values after successful submission
+
+  Usage:
+  <CreateNodeDialog bind:open {connectionNodeId} {onClose} />
+
+  Dependencies:
+  - Various UI components from '$lib/components/ui/'
+  - neo4jNetwork store from '$lib/stores.svelte'
+-->
+
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -18,7 +49,14 @@
 	let nodeName = $state('name');
 	let edgeName = $state('CMD');
 
-	const labels = ['MENU', 'PERSON']; // Add more labels as needed
+	$effect(() => {
+		console.log('nodeName', nodeName);
+	});
+
+	const labels = [
+		{ label: 'Menu', value: 'MENU' },
+		{ label: 'Person', value: 'PERSON' }
+	]; // Add more labels as needed
 
 	function handleSave() {
 		console.log('Adding node to DB:', {
@@ -37,10 +75,10 @@
 			nodeName: nodeName
 		});
 
-		// Reset values after database call
+		// Reset values to default after database call
 		direction = 'outgoing';
-		selectedLabel = '';
-		nodeName = '';
+		selectedLabel = 'MENU';
+		nodeName = 'name';
 		edgeName = 'CMD';
 
 		onClose();
@@ -69,7 +107,7 @@
 				<Label for="label" class="text-right">Label</Label>
 				<div class="col-span-3">
 					<Select.Root
-						selected={selectedLabel}
+						selected={labels[0]}
 						onSelectedChange={(v) => {
 							v && handleLabelChange({ detail: v.value });
 						}}
@@ -80,7 +118,7 @@
 						<Select.Content>
 							<Select.Group>
 								{#each labels as label}
-									<Select.Item value={label}>{label}</Select.Item>
+									<Select.Item value={label.value}>{label.label}</Select.Item>
 								{/each}
 							</Select.Group>
 						</Select.Content>

@@ -1,5 +1,4 @@
 <script>
-	import Cypher from '$lib/components/Cypher.svelte';
 	import Editor from '$lib/components/Editor.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 	import Header from '$lib/components/Header.svelte';

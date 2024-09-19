@@ -1,12 +1,35 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		%sveltekit.head%
-	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents">%sveltekit.body%</div>
-	</body>
+<!--
+  @file app.html
+  @description This is the main HTML template for the SvelteKit application.
+  
+  Key features:
+  - Defines the basic structure of every page in the application
+  - Sets up essential meta tags and links
+  - Includes SvelteKit-specific placeholders for dynamic content injection
+
+  Notable elements:
+  - <!doctype html>: Declares this as an HTML5 document
+  - <html lang="en">: Sets the language of the document to English
+  - <head>: Contains metadata and links to resources
+  - <body>: Contains the main content of the document
+  - sveltekit.head: Placeholder for SvelteKit to inject page-specific head content
+  - sveltekit.body: Placeholder for SvelteKit to inject the main body content
+
+  Attributes:
+  - data-sveltekit-preload-data="hover": Enables preloading of page data on hover for faster navigation
+-->
+
+<head>
+	<meta charset="utf-8" />
+	<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	%sveltekit.head%
+</head>
+
+<body data-sveltekit-preload-data="hover">
+	<div style="display: contents">%sveltekit.body%</div>
+</body>
+
 </html>
