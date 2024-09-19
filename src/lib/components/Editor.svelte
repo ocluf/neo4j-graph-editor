@@ -1,3 +1,37 @@
+<!--
+  @component
+
+  The Editor component is the main interface for visualizing and interacting with a Neo4j graph database. It provides the following features:
+
+  - Displays a network graph of nodes and edges using vis-network
+  - Allows selection and editing of node properties
+  - Supports creating new nodes and relationships
+  - Provides a context menu for additional actions
+  - Shows details of selected nodes and edges
+  - Integrates with the Neo4jNetwork store for data management
+  - Includes a Cypher query input in development mode
+
+  Key interactions:
+  - Click a node to select and view/edit its properties
+  - Double-click a node to expand its relationships
+  - Drag nodes to reposition them in the graph
+  - Use the context menu for additional options
+
+  Props:
+  - None
+
+  State:
+  - changedProperties: Tracks modifications to node properties
+  - selectedNode: Currently selected node
+  - selectedEdge: Currently selected edge
+  - nodeCreateDialogOpen: Controls visibility of node creation dialog
+  - nodeCreateDialogConnectionNodeId: ID of node to connect when creating a new node
+
+  Dependencies:
+  - vis-network for graph visualization
+  - neo4jNetwork and settings stores for data management
+  - Various UI components from $lib/components/ui
+-->
 <script lang="ts">
 	import { Network } from 'vis-network';
 	import { neo4jNetwork, settings } from '$lib/stores.svelte';
@@ -11,10 +45,14 @@
 	import CreateNodeDialog from './CreateNodeDialog.svelte';
 	import Cypher from './Cypher.svelte';
 	import { dev } from '$app/environment';
+
 	let graph: HTMLDivElement;
 	let changedProperties: Record<string, any> = $state({});
 	let selectedNode = $derived(
 		neo4jNetwork.selectedNodeId && neo4jNetwork.nodes.get(neo4jNetwork.selectedNodeId)
+	);
+	let selectedEdge = $derived(
+		neo4jNetwork.selectedEdgeId && neo4jNetwork.edges.get(neo4jNetwork.selectedEdgeId)
 	);
 	let network: Network;
 
@@ -74,6 +112,14 @@
 				};
 				neo4jNetwork.addGhostNode();
 			}
+		});
+
+		network.on('selectEdge', (params) => {
+			neo4jNetwork.selectedEdgeId = params.edges[0];
+		});
+
+		network.on('deselectEdge', (params) => {
+			neo4jNetwork.selectedEdgeId = null;
 		});
 
 		network.on('dragEnd', (params) => {
@@ -156,6 +202,26 @@
 		<div class="absolute z-50 top-2 left-2">
 			<Cypher />
 			<p class="text-xs text-gray-500 ml-2">only visible in dev mode</p>
+		</div>
+	{/if}
+	{#if selectedEdge}
+		<div class="absolute z-50 top-5 right-5 w-[275px]">
+			<Card.Root>
+				<Card.Header>
+					<div class="flex items-center justify-between">
+						<Card.Title>{selectedEdge.label}</Card.Title>
+						<Badge variant="outline"><span class="mr-3">ID</span> {selectedEdge.id}</Badge>
+					</div>
+				</Card.Header>
+				<Card.Content>
+					<div class="grid gap-4 py-4">
+						<div class="grid grid-cols-1 items-center gap-2">
+							<Label for="type" class="mb-1">Type</Label>
+							<Input id="type" value={selectedEdge.label} readonly class="w-full" />
+						</div>
+					</div>
+				</Card.Content>
+			</Card.Root>
 		</div>
 	{/if}
 	{#if selectedNode}

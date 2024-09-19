@@ -32,11 +32,15 @@ type Edge = {
 	type: string;
 };
 
+/**
+ * Represents a Neo4j network with nodes and edges.
+ */
 class Neo4jNetwork {
 	nodes: DataSet<Node>;
 	edges: DataSet<Edge>;
 
 	selectedNodeId: number | null = $state(null);
+	selectedEdgeId: number | null = $state(null);
 
 	canvasMousePositionX: number | null = null;
 	canvasMousePositionY: number | null = null;
@@ -49,11 +53,18 @@ class Neo4jNetwork {
 	#visibleRadius: number = 50; // Radius of the visible circle
 	hoverRadius: number = 60; // Radius of the hidden hover circle
 
+	/**
+	 * Creates a new Neo4jNetwork instance.
+	 */
 	constructor() {
 		this.nodes = new DataSet([]);
 		this.edges = new DataSet([]);
 	}
 
+	/**
+	 * Initializes the Neo4j network with the given server settings.
+	 * @param {Settings} serverSettings - The server settings to use for initialization.
+	 */
 	async initialize(serverSettings: Settings) {
 		if (!(await this.isServerSettingsValid(serverSettings))) {
 			return;
@@ -67,6 +78,11 @@ class Neo4jNetwork {
 		this.#nodeRenderLoop();
 	}
 
+	/**
+	 * Validates the given server settings.
+	 * @param {Settings} settings - The server settings to validate.
+	 * @returns {Promise<boolean>} A promise that resolves to true if the settings are valid, false otherwise.
+	 */
 	async isServerSettingsValid(settings: Settings) {
 		if (!settings || !settings.server || !settings.user || !settings.password) {
 			toast.error('Please enter valid server settings.');
@@ -97,6 +113,10 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Connects to the Neo4j database using the given server settings.
+	 * @param {Settings} serverSettings - The server settings to use for connection.
+	 */
 	async connect(serverSettings: Settings) {
 		if (this.#neo4jDriver || this.#neo4jSession) {
 			await this.disconnect();
@@ -115,6 +135,9 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Disconnects from the Neo4j database.
+	 */
 	async disconnect() {
 		try {
 			await this.#neo4jSession.close();
@@ -125,6 +148,11 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Runs a Cypher query on the Neo4j database.
+	 * @param {string} cypher - The Cypher query to run.
+	 * @returns {Promise<any>} A promise that resolves to the query result.
+	 */
 	async runCypher(cypher: string) {
 		try {
 			const result = await this.#neo4jSession.run(cypher);
@@ -135,6 +163,10 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Loads the network with the result of a Cypher query.
+	 * @param {string} cypher - The Cypher query to load.
+	 */
 	async loadCypher(cypher: string) {
 		try {
 			const result = await this.#neo4jSession.run(cypher);
@@ -181,6 +213,11 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Parses a Neo4j node into a Node object.
+	 * @param {neo4j.Node} neoNode - The Neo4j node to parse.
+	 * @returns {Node} The parsed Node object.
+	 */
 	#parseNeo4jNode(neoNode: neo4j.Node): Node {
 		const id = neoNode.identity.toInt();
 		const labels = neoNode.labels;
@@ -200,6 +237,11 @@ class Neo4jNetwork {
 		};
 	}
 
+	/**
+	 * Parses a Neo4j relationship into an Edge object.
+	 * @param {neo4j.Relationship} neoRelationship - The Neo4j relationship to parse.
+	 * @returns {Edge} The parsed Edge object.
+	 */
 	#parseNeo4jRelationship(neoRelationship: neo4j.Relationship): Edge {
 		const id = neoRelationship.identity.toInt();
 		const from = neoRelationship.start.toInt();
@@ -216,6 +258,16 @@ class Neo4jNetwork {
 		};
 	}
 
+	/**
+	 * Adds a new node to the Neo4j database and updates the network.
+	 * @param {Object} params - The parameters for the new node.
+	 * @param {IdType} params.nodeId - The ID of the existing node to connect to.
+	 * @param {string} params.edgeName - The name of the edge connecting the nodes.
+	 * @param {'outgoing' | 'incoming'} params.edgeDirection - The direction of the edge.
+	 * @param {string} params.group - The group of the new node.
+	 * @param {string} params.nodeName - The name of the new node.
+	 * @returns {Promise<number>} A promise that resolves to the ID of the new node.
+	 */
 	async addNodeToDB(params: {
 		nodeId: IdType;
 		edgeName: string;
@@ -261,6 +313,10 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Removes a node from the Neo4j database and updates the network.
+	 * @param {number | string} nodeId - The ID of the node to remove.
+	 */
 	async removeNodeFromDB(nodeId: number | string) {
 		try {
 			await this.#neo4jSession.run(`MATCH (n) WHERE id(n) = ${nodeId} DETACH DELETE n`);
@@ -271,6 +327,9 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Starts a loop that updates node labels and ghost node position.
+	 */
 	#nodeRenderLoop() {
 		const updateNodeLabel = () => {
 			this.nodes.forEach((node) => {
@@ -293,6 +352,12 @@ class Neo4jNetwork {
 		updateNodeLabel();
 	}
 
+	/**
+	 * Checks if the mouse is in the area where the "add node ring" is visible.
+	 * @param {number} nodeX - The x-coordinate of the node.
+	 * @param {number} nodeY - The y-coordinate of the node.
+	 * @returns {boolean} True if the mouse is in the hover area, false otherwise.
+	 */
 	isMouseInHoverArea(nodeX: number, nodeY: number): boolean {
 		if (this.canvasMousePositionX !== null && this.canvasMousePositionY !== null) {
 			const dx = this.canvasMousePositionX - nodeX;
@@ -306,6 +371,9 @@ class Neo4jNetwork {
 		return false;
 	}
 
+	/**
+	 * Adds a ghost node to the network.
+	 */
 	addGhostNode() {
 		const ghostNode = {
 			id: 'ghost',
@@ -378,12 +446,26 @@ class Neo4jNetwork {
 		}, 2000);
 	}
 
+	/**
+	 * Removes the ghost node from the network.
+	 */
 	removeGhostNode() {
 		// Remove the ghost node from the nodes DataSet
 		this.nodes.remove('ghost');
 		neo4jNetwork.ghostNodeConnectionPosition = null;
 	}
 
+	/**
+	 * Renders a node on the canvas.
+	 * @param {Object} params - The parameters for rendering the node.
+	 * @param {CanvasRenderingContext2D} params.ctx - The canvas rendering context.
+	 * @param {number} params.x - The x-coordinate of the node.
+	 * @param {number} params.y - The y-coordinate of the node.
+	 * @param {Record<string, any>} params.style - The style properties for the node.
+	 * @param {string} params.label - The label of the node.
+	 * @param {Object} params.state - The state of the node (hover and selected).
+	 * @returns {Object} An object with drawNode function and nodeDimensions.
+	 */
 	ctxRenderer = ({
 		ctx,
 		x,
@@ -440,7 +522,7 @@ class Neo4jNetwork {
 	/**
 	 * Updates a property of a node in the network and the Neo4j database.
 	 * @param {Number} id - The id of the node to update
-	 * @param {any[]} updates
+	 * @param {any[]} updates - An array of updates to apply to the node
 	 */
 	async updateNodeProperty(id, updates) {
 		try {
@@ -462,6 +544,10 @@ class Neo4jNetwork {
 		}
 	}
 
+	/**
+	 * Loads additional connections for a given node.
+	 * @param {any} nodeId - The ID of the node to load additional connections for.
+	 */
 	async loadAdditionalConnections(nodeId) {
 		const cypher = `MATCH (n1)<-[r]->(n2) WHERE ID(n1)=${nodeId} RETURN n1,r,n2`;
 		await this.loadCypher(cypher);
@@ -472,7 +558,7 @@ class Neo4jNetwork {
 	 * based on the provides labels.
 	 * TODO: This is not ideal, because this is very domain-specific.
 	 *
-	 * @param {String[]} labels
+	 * @param {String[]} labels - The labels to determine the level from.
 	 * @returns {Number} vis-hierarchy-level [0..n]
 	 */
 	#getLevelByLabels(labels: string[]): number {
@@ -488,6 +574,10 @@ type Settings = {
 	initialCypher: string;
 };
 
+/**
+ * Creates and manages the settings for the Neo4j network.
+ * @returns {Object} An object with getter and setter for settings.
+ */
 function createSettings() {
 	const storedSettings = localStorage.getItem('settings');
 	const initialSettings = storedSettings

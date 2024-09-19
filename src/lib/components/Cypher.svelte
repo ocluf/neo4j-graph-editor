@@ -1,3 +1,26 @@
+<!--
+  @component
+
+  The Cypher component provides a user interface for entering and executing Cypher queries against the Neo4j database. It consists of an input field for the query and a button to run it.
+
+  Features:
+  - Input field for entering Cypher queries
+  - Run button to execute the query
+  - Loading state indication during query execution
+  - Integration with neo4jNetwork store for query execution
+
+  Props:
+  - None
+
+  State:
+  - cypherQuery: Stores the current Cypher query
+  - isLoading: Indicates whether a query is currently being executed
+
+  Usage:
+  <Cypher />
+
+  Note: This component is typically used in development mode for testing and debugging purposes.
+-->
 <script>
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
